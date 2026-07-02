@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 #include <memory>
+#include <random>
 #include "../include/ResourceManager.hpp"
 #include "../include/Player.hpp"
 #include "../include/NormalPlatform.hpp"
@@ -19,16 +20,26 @@ int main() {
     Player player(textures.get("doodle_left"), textures.get("doodle_right"));
     
     std::vector<std::unique_ptr<Platform>> platforms;
-    platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({400.f, 500.f})));
-    platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({200.f, 300.f})));
-    platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({600.f, 100.f})));
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> xDist(0.f, 700.f);
+    std::uniform_real_distribution<float> yDist(80.f, 150.f);
+
+    platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({400.f, 550.f})));
+    
+    for (int i = 0; i < 10; ++i) {
+        float newX = xDist(gen);
+        float newY = platforms.back()->getPosition().y - yDist(gen);
+        platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({newX, newY})));
+    }
 
     sf::Clock clock;
 
     while (window.isOpen()) {
         sf::Time dt = clock.restart();
 
-        while (const std::optional<sf::Event> event = window.pollEvent()) {
+        while (const std::optional<sf::Event> event = window.window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
@@ -36,6 +47,15 @@ int main() {
 
         player.handleInput();
         player.update(dt.asSeconds());
+
+        if (player.getPosition().y < 300.f) {
+            float diff = 300.f - player.getPosition().y;
+            player.setPosition({player.getPosition().x, 300.f});
+            
+            for (auto& platform : platforms) {
+                platform->move(0.f, diff);
+            }
+        }
 
         if (player.getVelocityY() > 0.f) {
             sf::FloatRect playerBounds = player.getBounds();
@@ -48,6 +68,13 @@ int main() {
                     }
                 }
             }
+        }
+
+        while (!platforms.empty() && platforms.front()->getPosition().y > 600.f) {
+            platforms.erase(platforms.begin());
+            float newX = xDist(gen);
+            float newY = platforms.back()->getPosition().y - yDist(gen);
+            platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({newX, newY})));
         }
 
         window.clear(sf::Color::White);
