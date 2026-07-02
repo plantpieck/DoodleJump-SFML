@@ -10,4 +10,6 @@ public:
     virtual void update(float dt) = 0;
     virtual void render(sf::RenderWindow& window);
     sf::FloatRect getBounds() const;
+    void move(float offsetX, float offsetY);
+    sf::Vector2f getPosition() const;
 };

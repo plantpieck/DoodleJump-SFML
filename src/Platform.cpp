@@ -11,3 +11,11 @@ void Platform::render(sf::RenderWindow& window) {
 sf::FloatRect Platform::getBounds() const {
     return mSprite.getGlobalBounds();
 }
+
+void Platform::move(float offsetX, float offsetY) {
+    mSprite.move({offsetX, offsetY});
+}
+
+sf::Vector2f Platform::getPosition() const {
+    return mSprite.getPosition();
+}
