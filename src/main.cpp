@@ -4,9 +4,11 @@
 #include <vector>
 #include <memory>
 #include <random>
+#include <string>
 #include "../include/ResourceManager.hpp"
 #include "../include/Player.hpp"
 #include "../include/NormalPlatform.hpp"
+#include "../include/MovingPlatform.hpp"
 
 int main() {
     sf::RenderWindow window(sf::VideoMode({800, 600}), "Doodle Jump - Phase 1");
@@ -16,6 +18,10 @@ int main() {
     textures.load("doodle_left", "assets/left_doodle.png");
     textures.load("doodle_right", "assets/right_doodle.png");
     textures.load("platform_normal", "assets/normal_platform.png");
+    textures.load("platform_moving", "assets/moving_platform.png");
+
+    sf::Font mainFont;
+    mainFont.openFromFile("assets/arial.ttf");
 
     Player player(textures.get("doodle_left"), textures.get("doodle_right"));
     
@@ -25,6 +31,7 @@ int main() {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> xDist(0.f, 700.f);
     std::uniform_real_distribution<float> yDist(80.f, 150.f);
+    std::uniform_int_distribution<int> typeDist(1, 10);
 
     platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({400.f, 550.f})));
     
@@ -34,12 +41,18 @@ int main() {
         platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({newX, newY})));
     }
 
+    int score = 0;
+    sf::Text scoreText(mainFont);
+    scoreText.setCharacterSize(24);
+    scoreText.setFillColor(sf::Color::Black);
+    scoreText.setPosition({10.f, 10.f});
+
     sf::Clock clock;
 
     while (window.isOpen()) {
         sf::Time dt = clock.restart();
 
-        while (const std::optional<sf::Event> event = window.window.pollEvent()) {
+        while (const std::optional<sf::Event> event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
@@ -48,9 +61,19 @@ int main() {
         player.handleInput();
         player.update(dt.asSeconds());
 
+        for (auto& platform : platforms) {
+            platform->update(dt.asSeconds());
+        }
+
+        if (player.getPosition().y > 600.f) {
+            window.close(); 
+        }
+
         if (player.getPosition().y < 300.f) {
             float diff = 300.f - player.getPosition().y;
             player.setPosition({player.getPosition().x, 300.f});
+            
+            score += static_cast<int>(diff);
             
             for (auto& platform : platforms) {
                 platform->move(0.f, diff);
@@ -74,8 +97,15 @@ int main() {
             platforms.erase(platforms.begin());
             float newX = xDist(gen);
             float newY = platforms.back()->getPosition().y - yDist(gen);
-            platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({newX, newY})));
+            
+            if (typeDist(gen) > 7) {
+                platforms.push_back(std::make_unique<MovingPlatform>(textures.get("platform_moving"), sf::Vector2f({newX, newY})));
+            } else {
+                platforms.push_back(std::make_unique<NormalPlatform>(textures.get("platform_normal"), sf::Vector2f({newX, newY})));
+            }
         }
+
+        scoreText.setString("Score: " + std::to_string(score));
 
         window.clear(sf::Color::White);
         
@@ -83,6 +113,7 @@ int main() {
             platform->render(window);
         }
         player.render(window);
+        window.draw(scoreText);
         
         window.display();
     }
