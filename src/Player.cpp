@@ -45,3 +45,11 @@ float Player::getVelocityY() const {
 sf::FloatRect Player::getBounds() const {
     return mSprite.getGlobalBounds();
 }
+
+sf::Vector2f Player::getPosition() const {
+    return mSprite.getPosition();
+}
+
+void Player::setPosition(sf::Vector2f pos) {
+    mSprite.setPosition(pos);
+}

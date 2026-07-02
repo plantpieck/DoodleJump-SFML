@@ -19,4 +19,6 @@ public:
     void jump();
     float getVelocityY() const;
     sf::FloatRect getBounds() const;
+    sf::Vector2f getPosition() const;
+    void setPosition(sf::Vector2f pos);
 };
