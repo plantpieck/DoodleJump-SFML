@@ -2,17 +2,22 @@
 #include "../include/NormalPlatform.hpp"
 #include "../include/MovingPlatform.hpp"
 #include "../include/BreakablePlatform.hpp"
+#include "../include/SpringPlatform.hpp"
 #include <SFML/Window/Event.hpp>
 #include <fstream>
 #include <random>
 #include <iostream>
 
-Game::Game() : mWindow(sf::VideoMode({800, 600}), "Doodle Jump - Phase 1"), mState(GameState::Menu), mScore(0), mHighScore(0) {
+Game::Game() : mWindow(sf::VideoMode({500, 800}), "Doodle Jump - Phase 1"), mState(GameState::Menu), mScore(0), mHighScore(0) {
     mWindow.setFramerateLimit(60);
     loadResources();
     loadHighScore();
     mPlayer = std::make_unique<Player>(mTextures.get("doodle_left"), mTextures.get("doodle_right"));
     resetGame();
+}
+
+Game::~Game() {
+    saveHighScore();
 }
 
 void Game::loadResources() {
@@ -21,10 +26,28 @@ void Game::loadResources() {
     mTextures.load("platform_normal", "assets/normal_platform.png");
     mTextures.load("platform_moving", "assets/moving_platform.png");
     mTextures.load("platform_breakable", "assets/broken_platform.png");
+    mTextures.load("background", "assets/background.png");
+    mTextures.load("button_start", "assets/start_button.png");
+    mTextures.load("button_restart", "assets/restart_button.png");
+    mTextures.load("button_menu", "assets/menu_button.png");
+    mTextures.load("spring", "assets/spring_sprite.png");
     
     if (!mFont.openFromFile("fonts/ariblk.ttf")) {
         std::cerr << "Failed to load font!\n";
     }
+
+    mBackground = std::make_unique<sf::Sprite>(mTextures.get("background"));
+    auto bgSize = mTextures.get("background").getSize();
+    mBackground->setScale({500.f / static_cast<float>(bgSize.x), 800.f / static_cast<float>(bgSize.y)});
+
+    mStartButton = std::make_unique<sf::Sprite>(mTextures.get("button_start"));
+    mStartButton->setPosition({250.f - mStartButton->getGlobalBounds().size.x / 2.f, 400.f});
+
+    mRestartButton = std::make_unique<sf::Sprite>(mTextures.get("button_restart"));
+    mRestartButton->setPosition({250.f - mRestartButton->getGlobalBounds().size.x / 2.f, 420.f});
+
+    mMenuButton = std::make_unique<sf::Sprite>(mTextures.get("button_menu"));
+    mMenuButton->setPosition({250.f - mMenuButton->getGlobalBounds().size.x / 2.f, 520.f});
 }
 
 void Game::loadHighScore() {
@@ -49,31 +72,44 @@ void Game::saveHighScore() {
 void Game::resetGame() {
     mScore = 0;
     mPlatforms.clear();
-    mPlayer->setPosition({400.f, 300.f});
+    mPlayer->setPosition({250.f, 400.f});
     
-    mPlatforms.push_back(std::make_unique<NormalPlatform>(mTextures.get("platform_normal"), sf::Vector2f({400.f, 550.f})));
-    generatePlatforms(550.f);
+    mPlatforms.push_back(std::make_unique<NormalPlatform>(mTextures.get("platform_normal"), sf::Vector2f({250.f, 750.f})));
+    generatePlatforms(750.f);
 }
 
 void Game::generatePlatforms(float startY) {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> xDist(0.f, 700.f);
-    std::uniform_real_distribution<float> yDist(80.f, 130.f);
+    std::uniform_real_distribution<float> xDist(0.f, 400.f);
+    std::uniform_real_distribution<float> yDist(70.f, 110.f);
     std::uniform_int_distribution<int> typeDist(1, 100);
 
     float currentY = startY;
+    bool lastWasBreakable = false;
+
     for (int i = 0; i < 15; ++i) {
         float newX = xDist(gen);
         currentY -= yDist(gen);
         
         int r = typeDist(gen);
-        if (r <= 60) {
+        if (r <= 65) {
             mPlatforms.push_back(std::make_unique<NormalPlatform>(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY})));
-        } else if (r <= 85) {
+            lastWasBreakable = false;
+        } else if (r <= 80) {
             mPlatforms.push_back(std::make_unique<MovingPlatform>(mTextures.get("platform_moving"), sf::Vector2f({newX, currentY})));
+            lastWasBreakable = false;
+        } else if (r <= 85) {
+            mPlatforms.push_back(std::make_unique<SpringPlatform>(mTextures.get("platform_normal"), mTextures.get("spring"), sf::Vector2f({newX, currentY})));
+            lastWasBreakable = false;
         } else {
-            mPlatforms.push_back(std::make_unique<BreakablePlatform>(mTextures.get("platform_breakable"), sf::Vector2f({newX, currentY})));
+            if (lastWasBreakable) {
+                mPlatforms.push_back(std::make_unique<NormalPlatform>(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY})));
+                lastWasBreakable = false;
+            } else {
+                mPlatforms.push_back(std::make_unique<BreakablePlatform>(mTextures.get("platform_breakable"), sf::Vector2f({newX, currentY})));
+                lastWasBreakable = true;
+            }
         }
     }
 }
@@ -86,11 +122,20 @@ void Game::processEvents() {
         
         if (const auto* mouseBtn = event->getIf<sf::Event::MouseButtonPressed>()) {
             if (mouseBtn->button == sf::Mouse::Button::Left) {
+                sf::Vector2f mousePos(static_cast<float>(mouseBtn->position.x), static_cast<float>(mouseBtn->position.y));
+                
                 if (mState == GameState::Menu) {
-                    mState = GameState::Playing;
-                    resetGame();
+                    if (mStartButton->getGlobalBounds().contains(mousePos)) {
+                        mState = GameState::Playing;
+                        resetGame();
+                    }
                 } else if (mState == GameState::GameOver) {
-                    mState = GameState::Menu;
+                    if (mRestartButton->getGlobalBounds().contains(mousePos)) {
+                        mState = GameState::Playing;
+                        resetGame();
+                    } else if (mMenuButton->getGlobalBounds().contains(mousePos)) {
+                        mState = GameState::Menu;
+                    }
                 }
             }
         }
@@ -108,9 +153,9 @@ void Game::update(float dt) {
 
         handleCollisions();
 
-        if (mPlayer->getPosition().y < 300.f) {
-            float diff = 300.f - mPlayer->getPosition().y;
-            mPlayer->setPosition({mPlayer->getPosition().x, 300.f});
+        if (mPlayer->getPosition().y < 400.f) {
+            float diff = 400.f - mPlayer->getPosition().y;
+            mPlayer->setPosition({mPlayer->getPosition().x, 400.f});
             mScore += static_cast<int>(diff);
             
             for (auto& platform : mPlatforms) {
@@ -118,12 +163,12 @@ void Game::update(float dt) {
             }
         }
 
-        while (!mPlatforms.empty() && mPlatforms.front()->getPosition().y > 600.f) {
+        while (!mPlatforms.empty() && mPlatforms.front()->getPosition().y > 800.f) {
             mPlatforms.erase(mPlatforms.begin());
             generatePlatforms(mPlatforms.back()->getPosition().y);
         }
 
-        if (mPlayer->getPosition().y > 600.f) {
+        if (mPlayer->getPosition().y > 800.f) {
             saveHighScore();
             mState = GameState::GameOver;
         }
@@ -140,11 +185,20 @@ void Game::handleCollisions() {
             if (playerBounds.findIntersection(platformBounds).has_value()) {
                 if (playerBounds.position.y + playerBounds.size.y < platformBounds.position.y + platformBounds.size.y) {
                     
-                    if (auto breakable = dynamic_cast<BreakablePlatform*>(platform.get())) {
+                    if (auto springPlat = dynamic_cast<SpringPlatform*>(platform.get())) {
+                        if (playerBounds.findIntersection(springPlat->getSpringBounds()).has_value()) {
+                            mPlayer->superJump();
+                        } else {
+                            mPlayer->jump();
+                        }
+                        break;
+                    } 
+                    else if (auto breakable = dynamic_cast<BreakablePlatform*>(platform.get())) {
                         if (!breakable->isBroken()) {
                             breakable->breakPlatform();
                         }
-                    } else {
+                    } 
+                    else {
                         mPlayer->jump();
                         break;
                     }
@@ -156,6 +210,7 @@ void Game::handleCollisions() {
 
 void Game::render() {
     mWindow.clear(sf::Color::White);
+    mWindow.draw(*mBackground);
 
     if (mState == GameState::Playing) {
         for (auto& platform : mPlatforms) {
@@ -163,22 +218,50 @@ void Game::render() {
         }
         mPlayer->render(mWindow);
         
-        sf::Text scoreText(mFont, "Score: " + std::to_string(mScore), 24);
-        scoreText.setFillColor(sf::Color::Black);
-        scoreText.setPosition({10.f, 10.f});
+        sf::Text scoreText(mFont, std::to_string(mScore), 28);
+        scoreText.setFillColor(sf::Color::Red);
+        scoreText.setStyle(sf::Text::Bold);
+        scoreText.setPosition({15.f, 15.f});
         mWindow.draw(scoreText);
         
     } else if (mState == GameState::Menu) {
-        sf::Text titleText(mFont, "DOODLE JUMP\nClick to Start\nHigh Score: " + std::to_string(mHighScore), 36);
-        titleText.setFillColor(sf::Color::Black);
-        titleText.setPosition({250.f, 250.f});
+        sf::Text titleText(mFont, "DOODLE JUMP", 44);
+        titleText.setFillColor(sf::Color({20, 80, 120}));
+        titleText.setStyle(sf::Text::Bold);
+        titleText.setPosition({250.f - titleText.getGlobalBounds().size.x / 2.f, 200.f});
         mWindow.draw(titleText);
+
+        sf::Text highText(mFont, "HIGH SCORE: " + std::to_string(mHighScore), 24);
+        highText.setFillColor(sf::Color({50, 50, 50}));
+        highText.setPosition({250.f - highText.getGlobalBounds().size.x / 2.f, 300.f});
+        mWindow.draw(highText);
+
+        mWindow.draw(*mStartButton);
+
+        sf::Text hintText(mFont, "Use Left / Right arrows to move", 18);
+        hintText.setFillColor(sf::Color({80, 80, 80}));
+        hintText.setPosition({250.f - hintText.getGlobalBounds().size.x / 2.f, 550.f});
+        mWindow.draw(hintText);
         
     } else if (mState == GameState::GameOver) {
-        sf::Text overText(mFont, "YOU LOST!\nScore: " + std::to_string(mScore) + "\nHigh Score: " + std::to_string(mHighScore) + "\nClick to Menu", 36);
+        sf::Text overText(mFont, "YOU LOST", 48);
         overText.setFillColor(sf::Color::Red);
-        overText.setPosition({250.f, 250.f});
+        overText.setStyle(sf::Text::Bold);
+        overText.setPosition({250.f - overText.getGlobalBounds().size.x / 2.f, 200.f});
         mWindow.draw(overText);
+
+        sf::Text scoreText(mFont, "SCORE: " + std::to_string(mScore), 24);
+        scoreText.setFillColor(sf::Color({50, 50, 50}));
+        scoreText.setPosition({250.f - scoreText.getGlobalBounds().size.x / 2.f, 300.f});
+        mWindow.draw(scoreText);
+
+        sf::Text highText(mFont, "HIGH SCORE: " + std::to_string(mHighScore), 24);
+        highText.setFillColor(sf::Color({50, 50, 50}));
+        highText.setPosition({250.f - highText.getGlobalBounds().size.x / 2.f, 350.f});
+        mWindow.draw(highText);
+
+        mWindow.draw(*mRestartButton);
+        mWindow.draw(*mMenuButton);
     }
 
     mWindow.display();

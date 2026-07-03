@@ -17,6 +17,7 @@ public:
     void update(float dt);
     void render(sf::RenderWindow& window);
     void jump();
+    void superJump();
     float getVelocityY() const;
     sf::FloatRect getBounds() const;
     sf::Vector2f getPosition() const;

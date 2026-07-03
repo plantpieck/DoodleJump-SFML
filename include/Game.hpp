@@ -19,6 +19,11 @@ private:
     std::unique_ptr<Player> mPlayer;
     std::vector<std::unique_ptr<Platform>> mPlatforms;
     
+    std::unique_ptr<sf::Sprite> mBackground;
+    std::unique_ptr<sf::Sprite> mStartButton;
+    std::unique_ptr<sf::Sprite> mRestartButton;
+    std::unique_ptr<sf::Sprite> mMenuButton;
+    
     int mScore;
     int mHighScore;
     
@@ -34,5 +39,6 @@ private:
 
 public:
     Game();
+    ~Game();
     void run();
 };
