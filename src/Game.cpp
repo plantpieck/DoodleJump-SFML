@@ -20,9 +20,9 @@ void Game::loadResources() {
     mTextures.load("doodle_right", "assets/right_doodle.png");
     mTextures.load("platform_normal", "assets/normal_platform.png");
     mTextures.load("platform_moving", "assets/moving_platform.png");
-    mTextures.load("platform_breakable", "assets/breakable_platform.png");
+    mTextures.load("platform_breakable", "assets/broken_platform.png");
     
-    if (!mFont.openFromFile("assets/arial.ttf")) {
+    if (!mFont.openFromFile("fonts/ariblk.ttf")) {
         std::cerr << "Failed to load font!\n";
     }
 }
