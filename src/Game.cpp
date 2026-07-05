@@ -10,6 +10,7 @@
 
 Game::Game() : mWindow(sf::VideoMode({500, 800}), "Doodle Jump - Phase 1"), mState(GameState::Menu), mScore(0), mHighScore(0) {
     mWindow.setFramerateLimit(60);
+    mWorldView = mWindow.getDefaultView();
     loadResources();
     loadHighScore();
     mPlayer = std::make_unique<Player>(mTextures.get("doodle_left"), mTextures.get("doodle_right"));
@@ -70,9 +71,10 @@ void Game::saveHighScore() {
 }
 
 void Game::resetGame() {
+    mWorldView.setCenter({250.f, 400.f});
     mScore = 0;
     mPlatforms.clear();
-    mPlayer->setPosition({250.f, 400.f});
+    mPlayer->setPosition({250.f, 600.f});
     
     mPlatforms.push_back(std::make_unique<NormalPlatform>(mTextures.get("platform_normal"), sf::Vector2f({250.f, 750.f})));
     generatePlatforms(750.f);
@@ -153,22 +155,24 @@ void Game::update(float dt) {
 
         handleCollisions();
 
-        if (mPlayer->getPosition().y < 400.f) {
-            float diff = 400.f - mPlayer->getPosition().y;
-            mPlayer->setPosition({mPlayer->getPosition().x, 400.f});
-            mScore += static_cast<int>(diff);
-            
-            for (auto& platform : mPlatforms) {
-                platform->move(0.f, diff);
-            }
+        float playerY = mPlayer->getPosition().y;
+        if (playerY < mWorldView.getCenter().y) {
+            mWorldView.setCenter({250.f, playerY});
         }
 
-        while (!mPlatforms.empty() && mPlatforms.front()->getPosition().y > 800.f) {
+        int currentScore = static_cast<int>(600.f - playerY);
+        if (currentScore > mScore) {
+            mScore = currentScore;
+        }
+
+        float bottomEdge = mWorldView.getCenter().y + 400.f;
+
+        while (!mPlatforms.empty() && mPlatforms.front()->getPosition().y > bottomEdge) {
             mPlatforms.erase(mPlatforms.begin());
             generatePlatforms(mPlatforms.back()->getPosition().y);
         }
 
-        if (mPlayer->getPosition().y > 800.f) {
+        if (playerY > bottomEdge) {
             saveHighScore();
             mState = GameState::GameOver;
         }
@@ -210,13 +214,19 @@ void Game::handleCollisions() {
 
 void Game::render() {
     mWindow.clear(sf::Color::White);
+    
+    mWindow.setView(mWindow.getDefaultView());
     mWindow.draw(*mBackground);
 
     if (mState == GameState::Playing) {
+        mWindow.setView(mWorldView);
+        
         for (auto& platform : mPlatforms) {
             platform->render(mWindow);
         }
         mPlayer->render(mWindow);
+        
+        mWindow.setView(mWindow.getDefaultView());
         
         sf::Text scoreText(mFont, std::to_string(mScore), 28);
         scoreText.setFillColor(sf::Color::Red);
@@ -225,6 +235,8 @@ void Game::render() {
         mWindow.draw(scoreText);
         
     } else if (mState == GameState::Menu) {
+        mWindow.setView(mWindow.getDefaultView());
+        
         sf::Text titleText(mFont, "DOODLE JUMP", 44);
         titleText.setFillColor(sf::Color({20, 80, 120}));
         titleText.setStyle(sf::Text::Bold);
@@ -244,6 +256,8 @@ void Game::render() {
         mWindow.draw(hintText);
         
     } else if (mState == GameState::GameOver) {
+        mWindow.setView(mWindow.getDefaultView());
+        
         sf::Text overText(mFont, "YOU LOST", 48);
         overText.setFillColor(sf::Color::Red);
         overText.setStyle(sf::Text::Bold);

@@ -12,6 +12,7 @@ enum class GameState { Menu, Playing, GameOver };
 class Game {
 private:
     sf::RenderWindow mWindow;
+    sf::View mWorldView;
     ResourceManager<sf::Texture, std::string> mTextures;
     sf::Font mFont;
     
