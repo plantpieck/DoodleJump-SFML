@@ -13,12 +13,23 @@ Game::Game() : mWindow(sf::VideoMode({500, 800}), "Doodle Jump - Phase 1"), mSta
     mWorldView = mWindow.getDefaultView();
     loadResources();
     loadHighScore();
-    mPlayer = std::make_unique<Player>(mTextures.get("doodle_left"), mTextures.get("doodle_right"));
+    mPlayer = new Player(mTextures.get("doodle_left"), mTextures.get("doodle_right"));
     resetGame();
 }
 
 Game::~Game() {
     saveHighScore();
+    
+    delete mPlayer;
+    delete mBackground;
+    delete mStartButton;
+    delete mRestartButton;
+    delete mMenuButton;
+    
+    for (auto platform : mPlatforms) {
+        delete platform;
+    }
+    mPlatforms.clear();
 }
 
 void Game::loadResources() {
@@ -37,17 +48,17 @@ void Game::loadResources() {
         std::cerr << "Failed to load font!\n";
     }
 
-    mBackground = std::make_unique<sf::Sprite>(mTextures.get("background"));
+    mBackground = new sf::Sprite(mTextures.get("background"));
     auto bgSize = mTextures.get("background").getSize();
     mBackground->setScale({500.f / static_cast<float>(bgSize.x), 800.f / static_cast<float>(bgSize.y)});
 
-    mStartButton = std::make_unique<sf::Sprite>(mTextures.get("button_start"));
+    mStartButton = new sf::Sprite(mTextures.get("button_start"));
     mStartButton->setPosition({250.f - mStartButton->getGlobalBounds().size.x / 2.f, 400.f});
 
-    mRestartButton = std::make_unique<sf::Sprite>(mTextures.get("button_restart"));
+    mRestartButton = new sf::Sprite(mTextures.get("button_restart"));
     mRestartButton->setPosition({250.f - mRestartButton->getGlobalBounds().size.x / 2.f, 420.f});
 
-    mMenuButton = std::make_unique<sf::Sprite>(mTextures.get("button_menu"));
+    mMenuButton = new sf::Sprite(mTextures.get("button_menu"));
     mMenuButton->setPosition({250.f - mMenuButton->getGlobalBounds().size.x / 2.f, 520.f});
 }
 
@@ -73,10 +84,15 @@ void Game::saveHighScore() {
 void Game::resetGame() {
     mWorldView.setCenter({250.f, 400.f});
     mScore = 0;
+    
+    for (auto platform : mPlatforms) {
+        delete platform;
+    }
     mPlatforms.clear();
+    
     mPlayer->setPosition({250.f, 600.f});
     
-    mPlatforms.push_back(std::make_unique<NormalPlatform>(mTextures.get("platform_normal"), sf::Vector2f({250.f, 750.f})));
+    mPlatforms.push_back(new NormalPlatform(mTextures.get("platform_normal"), sf::Vector2f({250.f, 750.f})));
     generatePlatforms(750.f);
 }
 
@@ -96,20 +112,20 @@ void Game::generatePlatforms(float startY) {
         
         int r = typeDist(gen);
         if (r <= 65) {
-            mPlatforms.push_back(std::make_unique<NormalPlatform>(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY})));
+            mPlatforms.push_back(new NormalPlatform(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY})));
             lastWasBreakable = false;
         } else if (r <= 80) {
-            mPlatforms.push_back(std::make_unique<MovingPlatform>(mTextures.get("platform_moving"), sf::Vector2f({newX, currentY})));
+            mPlatforms.push_back(new MovingPlatform(mTextures.get("platform_moving"), sf::Vector2f({newX, currentY})));
             lastWasBreakable = false;
         } else if (r <= 85) {
-            mPlatforms.push_back(std::make_unique<SpringPlatform>(mTextures.get("platform_normal"), mTextures.get("spring"), sf::Vector2f({newX, currentY})));
+            mPlatforms.push_back(new SpringPlatform(mTextures.get("platform_normal"), mTextures.get("spring"), sf::Vector2f({newX, currentY})));
             lastWasBreakable = false;
         } else {
             if (lastWasBreakable) {
-                mPlatforms.push_back(std::make_unique<NormalPlatform>(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY})));
+                mPlatforms.push_back(new NormalPlatform(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY})));
                 lastWasBreakable = false;
             } else {
-                mPlatforms.push_back(std::make_unique<BreakablePlatform>(mTextures.get("platform_breakable"), sf::Vector2f({newX, currentY})));
+                mPlatforms.push_back(new BreakablePlatform(mTextures.get("platform_breakable"), sf::Vector2f({newX, currentY})));
                 lastWasBreakable = true;
             }
         }
@@ -149,7 +165,7 @@ void Game::update(float dt) {
         mPlayer->handleInput();
         mPlayer->update(dt);
 
-        for (auto& platform : mPlatforms) {
+        for (auto platform : mPlatforms) {
             platform->update(dt);
         }
 
@@ -168,6 +184,7 @@ void Game::update(float dt) {
         float bottomEdge = mWorldView.getCenter().y + 400.f;
 
         while (!mPlatforms.empty() && mPlatforms.front()->getPosition().y > bottomEdge) {
+            delete mPlatforms.front();
             mPlatforms.erase(mPlatforms.begin());
             generatePlatforms(mPlatforms.back()->getPosition().y);
         }
@@ -183,21 +200,22 @@ void Game::handleCollisions() {
     if (mPlayer->getVelocityY() > 0.f) {
         sf::FloatRect playerBounds = mPlayer->getBounds();
         
-        for (auto& platform : mPlatforms) {
+        for (auto platform : mPlatforms) {
             sf::FloatRect platformBounds = platform->getBounds();
             
             if (playerBounds.findIntersection(platformBounds).has_value()) {
                 if (playerBounds.position.y + playerBounds.size.y < platformBounds.position.y + platformBounds.size.y) {
                     
-                    if (auto springPlat = dynamic_cast<SpringPlatform*>(platform.get())) {
+                    if (auto springPlat = dynamic_cast<SpringPlatform*>(platform)) {
                         if (playerBounds.findIntersection(springPlat->getSpringBounds()).has_value()) {
                             mPlayer->superJump();
+                            springPlat->compress(); // تغییر شکل فنر موقع پرش
                         } else {
                             mPlayer->jump();
                         }
                         break;
                     } 
-                    else if (auto breakable = dynamic_cast<BreakablePlatform*>(platform.get())) {
+                    else if (auto breakable = dynamic_cast<BreakablePlatform*>(platform)) {
                         if (!breakable->isBroken()) {
                             breakable->breakPlatform();
                         }
@@ -221,7 +239,7 @@ void Game::render() {
     if (mState == GameState::Playing) {
         mWindow.setView(mWorldView);
         
-        for (auto& platform : mPlatforms) {
+        for (auto platform : mPlatforms) {
             platform->render(mWindow);
         }
         mPlayer->render(mWindow);

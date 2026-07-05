@@ -1,7 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include <memory>
 #include <string>
 #include "ResourceManager.hpp"
 #include "Player.hpp"
@@ -17,13 +16,13 @@ private:
     sf::Font mFont;
     
     GameState mState;
-    std::unique_ptr<Player> mPlayer;
-    std::vector<std::unique_ptr<Platform>> mPlatforms;
+    Player* mPlayer;
+    std::vector<Platform*> mPlatforms;
     
-    std::unique_ptr<sf::Sprite> mBackground;
-    std::unique_ptr<sf::Sprite> mStartButton;
-    std::unique_ptr<sf::Sprite> mRestartButton;
-    std::unique_ptr<sf::Sprite> mMenuButton;
+    sf::Sprite* mBackground;
+    sf::Sprite* mStartButton;
+    sf::Sprite* mRestartButton;
+    sf::Sprite* mMenuButton;
     
     int mScore;
     int mHighScore;
