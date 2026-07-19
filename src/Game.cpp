@@ -37,6 +37,11 @@ Game::~Game() {
         delete platform;
     }
     mPlatforms.clear();
+
+    for (auto monster : mMonsters) {
+        delete monster;
+    }
+    mMonsters.clear();
 }
 
 void Game::loadSettings() {
@@ -98,6 +103,8 @@ void Game::loadResources() {
     mTextures.load("button_restart", "assets/restart_button.png");
     mTextures.load("button_menu", "assets/menu_button.png");
     mTextures.load("spring", "assets/spring_sprite.png");
+    mTextures.load("monster1", "assets/BlueMonster.png");
+    mTextures.load("monster2", "assets/green_monster.png");
     
     if (!mFont.openFromFile("fonts/ariblk.ttf")) {
         std::cerr << "Failed to load font!\n";
@@ -130,6 +137,11 @@ void Game::resetGame() {
     
     mPlatforms.push_back(new NormalPlatform(mTextures.get("platform_normal"), sf::Vector2f({250.f, 750.f})));
     generatePlatforms(750.f);
+
+    for (auto monster : mMonsters) {
+        delete monster;
+    }
+    mMonsters.clear();
 }
 
 void Game::generatePlatforms(float startY) {
@@ -205,6 +217,18 @@ void Game::update(float dt) {
             platform->update(dt);
         }
 
+        for (auto it = mMonsters.begin(); it != mMonsters.end(); ) {
+            (*it)->update(dt);
+            
+            if ((*it)->isDead() || (*it)->getPosition().y > bottomEdge) {
+                delete *it;
+                it = mMonsters.erase(it);
+                spawnMonster(mWorldView.getCenter().y - 400.f); 
+            } else {
+                ++it;
+            }
+        }
+
         handleCollisions();
 
         float playerY = mPlayer->getPosition().y;
@@ -239,6 +263,23 @@ void Game::handleCollisions() {
     if (mPlayer->getVelocityY() > 0.f) {
         sf::FloatRect playerBounds = mPlayer->getBounds();
         
+        for (auto monster : mMonsters) {
+            sf::FloatRect monsterBounds = monster->getBounds();
+            if (playerBounds.findIntersection(monsterBounds).has_value()) {
+                if (mPlayer->getVelocityY() > 0.f && 
+                    playerBounds.position.y + playerBounds.size.y < monsterBounds.position.y + monsterBounds.size.y * 0.5f) {
+                    mPlayer->superJump(); 
+                } else {
+                    mState = GameState::GameOver;
+                    if (mScore > mHighScores[mDifficulty]) {
+                        mHighScores[mDifficulty] = mScore;
+                        saveHighScores();
+                    }
+                    return; 
+                }
+            }
+        }
+
         for (auto platform : mPlatforms) {
             sf::FloatRect platformBounds = platform->getBounds();
             
@@ -280,6 +321,11 @@ void Game::render() {
         for (auto platform : mPlatforms) {
             platform->render(mWindow);
         }
+
+        for (auto monster : mMonsters) {
+            monster->render(mWindow);
+        }
+
         mPlayer->render(mWindow);
         
         mWindow.setView(mWindow.getDefaultView());
@@ -340,5 +386,43 @@ void Game::run() {
         processEvents();
         update(dt);
         render();
+    }
+}
+
+bool Game::isPositionValid(sf::FloatRect bounds) {
+    sf::FloatRect expandedBounds = bounds;
+    expandedBounds.position.x -= 20.f;
+    expandedBounds.size.x += 40.f;
+    expandedBounds.position.y -= 20.f;
+    expandedBounds.size.y += 40.f;
+
+    for (auto plat : mPlatforms) {
+        if (plat->getBounds().findIntersection(expandedBounds).has_value()) return false;
+    }
+    for (auto m : mMonsters) {
+        if (m->getBounds().findIntersection(expandedBounds).has_value()) return false;
+    }
+    return true;
+}
+
+void Game::spawnMonster(float baseY) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> xDist(0.f, 400.f);
+    std::uniform_real_distribution<float> yDist(baseY - 300.f, baseY - 50.f);
+    std::uniform_int_distribution<int> texDist(1, 2);
+
+    int health = (mDifficulty == Difficulty::Easy) ? 1 : ((mDifficulty == Difficulty::Medium) ? 2 : 3);
+    std::string texName = (texDist(gen) == 1) ? "monster1" : "monster2";
+    
+    for(int attempts = 0; attempts < 10; ++attempts) {
+        float x = xDist(gen);
+        float y = yDist(gen);
+        sf::FloatRect testBounds({x, y}, {60.f, 60.f}); 
+        
+        if (isPositionValid(testBounds)) {
+            mMonsters.push_back(new Monster(mTextures.get(texName), {x, y}, health));
+            break;
+        }
     }
 }

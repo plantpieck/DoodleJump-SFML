@@ -5,6 +5,7 @@
 #include "ResourceManager.hpp"
 #include "Player.hpp"
 #include "Platform.hpp"
+#include "Monster.hpp"
 
 enum class GameState { Menu, Playing, GameOver, Settings };
 enum class Difficulty { Easy, Medium, Hard };
@@ -21,6 +22,11 @@ private:
     float mVolume;
     Player* mPlayer;
     std::vector<Platform*> mPlatforms;
+
+    std::vector<Monster*> mMonsters;
+    
+    bool isPositionValid(sf::FloatRect bounds);
+    void spawnMonster(float baseY);
     
     sf::Sprite* mBackground;
     sf::Sprite* mStartButton;
