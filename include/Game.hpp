@@ -6,7 +6,8 @@
 #include "Player.hpp"
 #include "Platform.hpp"
 
-enum class GameState { Menu, Playing, GameOver };
+enum class GameState { Menu, Playing, GameOver, Settings };
+enum class Difficulty { Easy, Medium, Hard };
 
 class Game {
 private:
@@ -16,6 +17,8 @@ private:
     sf::Font mFont;
     
     GameState mState;
+    Difficulty mDifficulty;
+    float mVolume;
     Player* mPlayer;
     std::vector<Platform*> mPlatforms;
     
@@ -23,9 +26,11 @@ private:
     sf::Sprite* mStartButton;
     sf::Sprite* mRestartButton;
     sf::Sprite* mMenuButton;
+    sf::Sprite* mSettingsButton; 
+    sf::Sprite* mBackButton;
     
     int mScore;
-    int mHighScore;
+    std::map<Difficulty, int> mHighScores;
     
     void loadResources();
     void resetGame();
@@ -34,8 +39,23 @@ private:
     void render();
     void handleCollisions();
     void generatePlatforms(float startY);
-    void loadHighScore();
-    void saveHighScore();
+    void loadHighScores();
+    void saveHighScores();
+    void loadSettings();
+    void saveSettings();
+
+    void renderSettings();
+    void processSettingsEvents(sf::Vector2f mousePos);
+
+    sf::RectangleShape mSliderTrack;
+    sf::RectangleShape mSliderHandle;
+    sf::Text mSettingsTitleText;
+    sf::Text mVolumeText;
+    sf::Text mEasyText;
+    sf::Text mMediumText;
+    sf::Text mHardText;
+    sf::Text mBackText;
+    sf::Text mSettingsButtonText;
 
 public:
     Game();
