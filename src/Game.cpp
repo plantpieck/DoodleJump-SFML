@@ -7,29 +7,84 @@
 #include <fstream>
 #include <random>
 #include <iostream>
+#include <algorithm>
 
-Game::Game() : mWindow(sf::VideoMode({500, 800}), "Doodle Jump - Phase 1"), mState(GameState::Menu), mScore(0), mHighScore(0) {
+Game::Game() : mWindow(sf::VideoMode({500, 800}), "Doodle Jump - Phase 2"), mState(GameState::Menu), mScore(0) {
     mWindow.setFramerateLimit(60);
     mWorldView = mWindow.getDefaultView();
+    
+    loadSettings();
+    loadHighScores();
     loadResources();
-    loadHighScore();
+    
     mPlayer = new Player(mTextures.get("doodle_left"), mTextures.get("doodle_right"));
     resetGame();
 }
 
 Game::~Game() {
-    saveHighScore();
+    saveHighScores();
+    saveSettings();
     
     delete mPlayer;
     delete mBackground;
     delete mStartButton;
     delete mRestartButton;
     delete mMenuButton;
+    delete mSettingsButton;
+    delete mBackButton;
     
     for (auto platform : mPlatforms) {
         delete platform;
     }
     mPlatforms.clear();
+}
+
+void Game::loadSettings() {
+    std::ifstream file("settings.txt");
+    if (file.is_open()) {
+        int diffInt;
+        file >> mVolume >> diffInt;
+        mDifficulty = static_cast<Difficulty>(diffInt);
+        file.close();
+    } else {
+        mVolume = 50.f; 
+        mDifficulty = Difficulty::Medium; 
+    }
+}
+
+void Game::saveSettings() {
+    std::ofstream file("settings.txt");
+    if (file.is_open()) {
+        file << mVolume << " " << static_cast<int>(mDifficulty);
+        file.close();
+    }
+}
+
+void Game::loadHighScores() {
+    mHighScores[Difficulty::Easy] = 0;
+    mHighScores[Difficulty::Medium] = 0;
+    mHighScores[Difficulty::Hard] = 0;
+    
+    std::ifstream file("highscore.txt");
+    if (file.is_open()) {
+        int e, m, h;
+        if (file >> e >> m >> h) {
+            mHighScores[Difficulty::Easy] = e;
+            mHighScores[Difficulty::Medium] = m;
+            mHighScores[Difficulty::Hard] = h;
+        }
+        file.close();
+    }
+}
+
+void Game::saveHighScores() {
+    std::ofstream file("highscore.txt");
+    if (file.is_open()) {
+        file << mHighScores[Difficulty::Easy] << " "
+             << mHighScores[Difficulty::Medium] << " "
+             << mHighScores[Difficulty::Hard];
+        file.close();
+    }
 }
 
 void Game::loadResources() {
@@ -53,32 +108,13 @@ void Game::loadResources() {
     mBackground->setScale({500.f / static_cast<float>(bgSize.x), 800.f / static_cast<float>(bgSize.y)});
 
     mStartButton = new sf::Sprite(mTextures.get("button_start"));
-    mStartButton->setPosition({250.f - mStartButton->getGlobalBounds().size.x / 2.f, 400.f});
+    mStartButton->setPosition({250.f - mStartButton->getGlobalBounds().size.x / 2.f, 350.f});
 
     mRestartButton = new sf::Sprite(mTextures.get("button_restart"));
     mRestartButton->setPosition({250.f - mRestartButton->getGlobalBounds().size.x / 2.f, 420.f});
 
     mMenuButton = new sf::Sprite(mTextures.get("button_menu"));
     mMenuButton->setPosition({250.f - mMenuButton->getGlobalBounds().size.x / 2.f, 520.f});
-}
-
-void Game::loadHighScore() {
-    std::ifstream file("highscore.txt");
-    if (file.is_open()) {
-        file >> mHighScore;
-        file.close();
-    }
-}
-
-void Game::saveHighScore() {
-    if (mScore > mHighScore) {
-        mHighScore = mScore;
-        std::ofstream file("highscore.txt");
-        if (file.is_open()) {
-            file << mHighScore;
-            file.close();
-        }
-    }
 }
 
 void Game::resetGame() {
@@ -190,7 +226,10 @@ void Game::update(float dt) {
         }
 
         if (playerY > bottomEdge) {
-            saveHighScore();
+            if (mScore > mHighScores[mDifficulty]) {
+                mHighScores[mDifficulty] = mScore;
+                saveHighScores();
+            }
             mState = GameState::GameOver;
         }
     }
@@ -209,7 +248,7 @@ void Game::handleCollisions() {
                     if (auto springPlat = dynamic_cast<SpringPlatform*>(platform)) {
                         if (playerBounds.findIntersection(springPlat->getSpringBounds()).has_value()) {
                             mPlayer->superJump();
-                            springPlat->compress(); // تغییر شکل فنر موقع پرش
+                            springPlat->compress(); 
                         } else {
                             mPlayer->jump();
                         }
@@ -232,7 +271,6 @@ void Game::handleCollisions() {
 
 void Game::render() {
     mWindow.clear(sf::Color::White);
-    
     mWindow.setView(mWindow.getDefaultView());
     mWindow.draw(*mBackground);
 
@@ -258,20 +296,16 @@ void Game::render() {
         sf::Text titleText(mFont, "DOODLE JUMP", 44);
         titleText.setFillColor(sf::Color({20, 80, 120}));
         titleText.setStyle(sf::Text::Bold);
-        titleText.setPosition({250.f - titleText.getGlobalBounds().size.x / 2.f, 200.f});
+        titleText.setPosition({250.f - titleText.getGlobalBounds().size.x / 2.f, 150.f});
         mWindow.draw(titleText);
 
-        sf::Text highText(mFont, "HIGH SCORE: " + std::to_string(mHighScore), 24);
+        // نمایش رکورد مختص به سطح دشواری فعلی
+        sf::Text highText(mFont, "HIGH SCORE: " + std::to_string(mHighScores[mDifficulty]), 24);
         highText.setFillColor(sf::Color({50, 50, 50}));
-        highText.setPosition({250.f - highText.getGlobalBounds().size.x / 2.f, 300.f});
+        highText.setPosition({250.f - highText.getGlobalBounds().size.x / 2.f, 250.f});
         mWindow.draw(highText);
 
         mWindow.draw(*mStartButton);
-
-        sf::Text hintText(mFont, "Use Left / Right arrows to move", 18);
-        hintText.setFillColor(sf::Color({80, 80, 80}));
-        hintText.setPosition({250.f - hintText.getGlobalBounds().size.x / 2.f, 550.f});
-        mWindow.draw(hintText);
         
     } else if (mState == GameState::GameOver) {
         mWindow.setView(mWindow.getDefaultView());
@@ -287,7 +321,7 @@ void Game::render() {
         scoreText.setPosition({250.f - scoreText.getGlobalBounds().size.x / 2.f, 300.f});
         mWindow.draw(scoreText);
 
-        sf::Text highText(mFont, "HIGH SCORE: " + std::to_string(mHighScore), 24);
+        sf::Text highText(mFont, "HIGH SCORE: " + std::to_string(mHighScores[mDifficulty]), 24);
         highText.setFillColor(sf::Color({50, 50, 50}));
         highText.setPosition({250.f - highText.getGlobalBounds().size.x / 2.f, 350.f});
         mWindow.draw(highText);
