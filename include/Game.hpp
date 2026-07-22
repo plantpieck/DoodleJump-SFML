@@ -7,6 +7,7 @@
 #include "Platform.hpp"
 #include "Monster.hpp"
 #include "Bullet.hpp"
+#include <SFML/Audio.hpp>
 
 enum class GameState { Menu, Playing, GameOver, Settings };
 enum class Difficulty { Easy, Medium, Hard };
@@ -65,6 +66,14 @@ private:
     sf::Text mHardText;
     sf::Text mBackText;
     sf::Text mSettingsButtonText;
+
+    ResourceManager<sf::SoundBuffer, std::string> mSoundBuffers;
+    sf::Sound mJumpSound;
+    sf::Sound mShootSound;
+    sf::Sound mLoseSound;
+    sf::Music mBgMusic;
+    
+    void applyVolume(); 
 
 public:
     Game();

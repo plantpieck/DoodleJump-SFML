@@ -130,6 +130,22 @@ void Game::loadResources() {
 
     mMenuButton = new sf::Sprite(mTextures.get("button_menu"));
     mMenuButton->setPosition({250.f - mMenuButton->getGlobalBounds().size.x / 2.f, 520.f});
+
+    mSoundBuffers.load("jump", "sounds/Jumping_Sound.wav");
+    mSoundBuffers.load("shoot", "sounds/Shooting_Sound.wav");
+    mSoundBuffers.load("lose", "sounds/Loosing_Sound.wav");
+
+    mJumpSound.setBuffer(mSoundBuffers.get("jump"));
+    mShootSound.setBuffer(mSoundBuffers.get("shoot"));
+    mLoseSound.setBuffer(mSoundBuffers.get("lose"));
+
+    if (!mBgMusic.openFromFile("sounds/MainMenu_Song.flac")) {
+        std::cerr << "Failed to load background music!\n";
+    }
+    mBgMusic.setLoop(true);
+
+    applyVolume();
+    mBgMusic.play();
 }
 
 void Game::resetGame() {
@@ -208,6 +224,7 @@ void Game::processEvents() {
                     if (mStartButton->getGlobalBounds().contains(mousePos)) {
                         mState = GameState::Playing;
                         resetGame();
+                        mBgMusic.stop();
                     }
                 } else if (mState == GameState::GameOver) {
                     if (mRestartButton->getGlobalBounds().contains(mousePos)) {
@@ -215,6 +232,7 @@ void Game::processEvents() {
                         resetGame();
                     } else if (mMenuButton->getGlobalBounds().contains(mousePos)) {
                         mState = GameState::Menu;
+                        mBgMusic.play();
                     }
                 }
             }
@@ -238,6 +256,7 @@ void Game::update(float dt) {
             sf::FloatRect playerBounds = mPlayer->getBounds();
             sf::Vector2f spawnPos(playerBounds.position.x + playerBounds.size.x / 2.f, playerBounds.position.y);
             mBullets.push_back(new Bullet(mTextures.get("bullet"), spawnPos));
+            mShootSound.play();
         }
 
         float topEdge = mWorldView.getCenter().y - 400.f;
@@ -313,6 +332,7 @@ void Game::update(float dt) {
                 saveHighScores();
             }
             mState = GameState::GameOver;
+            mLoseSound.play();
         }
     }
 }
@@ -326,6 +346,7 @@ void Game::handleCollisions() {
             if (playerBounds.findIntersection(monsterBounds).has_value()) {
                 if (mPlayer->getVelocityY() > 0.f && 
                     playerBounds.position.y + playerBounds.size.y < monsterBounds.position.y + monsterBounds.size.y * 0.5f) {
+                    mJumpSound.play();
                     mPlayer->superJump(); 
                 } else {
                     mState = GameState::GameOver;
@@ -346,9 +367,11 @@ void Game::handleCollisions() {
                     
                     if (auto springPlat = dynamic_cast<SpringPlatform*>(platform)) {
                         if (playerBounds.findIntersection(springPlat->getSpringBounds()).has_value()) {
+                            mJumpSound.play();
                             mPlayer->superJump();
                             springPlat->compress(); 
                         } else {
+                            mJumpSound.play();
                             mPlayer->jump();
                         }
                         break;
@@ -359,6 +382,7 @@ void Game::handleCollisions() {
                         }
                     } 
                     else {
+                        mJumpSound.play();
                         mPlayer->jump();
                         break;
                     }
@@ -487,4 +511,11 @@ void Game::spawnMonster(float baseY) {
             break;
         }
     }
+}
+
+void Game::applyVolume() {
+    mBgMusic.setVolume(mVolume);
+    mJumpSound.setVolume(mVolume);
+    mShootSound.setVolume(mVolume);
+    mLoseSound.setVolume(mVolume);
 }

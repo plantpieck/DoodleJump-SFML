@@ -1,6 +1,6 @@
 COMPILER = g++
 FLAGS = -std=c++17 -Wall -Iinclude -I/opt/homebrew/include -I/usr/local/include
-LIBS = -L/opt/homebrew/lib -L/usr/local/lib -lsfml-graphics -lsfml-window -lsfml-system
+LIBS = -L/opt/homebrew/lib -L/usr/local/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 
 SOURCES = $(wildcard src/*.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
