@@ -59,18 +59,19 @@ private:
 
     sf::RectangleShape mSliderTrack;
     sf::RectangleShape mSliderHandle;
-    sf::Text mSettingsTitleText;
-    sf::Text mVolumeText;
-    sf::Text mEasyText;
-    sf::Text mMediumText;
-    sf::Text mHardText;
-    sf::Text mBackText;
-    sf::Text mSettingsButtonText;
+    sf::Text mSettingsTitleText{mFont};
+    sf::Text mVolumeText{mFont};
+    sf::Text mEasyText{mFont};
+    sf::Text mMediumText{mFont};
+    sf::Text mHardText{mFont};
+    sf::Text mBackText{mFont};
+    sf::Text mSettingsButtonText{mFont};
 
     ResourceManager<sf::SoundBuffer, std::string> mSoundBuffers;
-    sf::Sound mJumpSound;
-    sf::Sound mShootSound;
-    sf::Sound mLoseSound;
+    sf::SoundBuffer mDummyBuffer; 
+    sf::Sound mJumpSound{mDummyBuffer};
+    sf::Sound mShootSound{mDummyBuffer};
+    sf::Sound mLoseSound{mDummyBuffer};
     sf::Music mBgMusic;
     
     void applyVolume(); 

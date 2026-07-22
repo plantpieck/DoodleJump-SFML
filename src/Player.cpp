@@ -1,8 +1,10 @@
 #include "../include/Player.hpp"
 
 Player::Player(sf::Texture& leftTex, sf::Texture& rightTex, sf::Texture& shootTex) 
-    : mSprite(rightTex), mLeftTexture(&leftTex), mRightTexture(&rightTex), mShootTexture(&shootTex),
-      mSpeed(300.f), mGravity(800.f), mJumpVelocity(-600.f), mIsShooting(false) {
+    : mSprite(rightTex), mLeftTexture(&leftTex), mRightTexture(&rightTex), 
+      mSpeed(300.f), mGravity(800.f), mJumpVelocity(-600.f) {
+    mShootTexture = &shootTex;
+    mIsShooting = false;
     mSprite.setPosition({250.f, 400.f});
     mSprite.setScale({0.55f, 0.55f});
 }
@@ -23,7 +25,7 @@ void Player::handleInput() {
             mVelocity.x = mSpeed;
             mSprite.setTexture(*mRightTexture);
         } else {
-            if (mSprite.getTexture() == mShootTexture) {
+            if (&mSprite.getTexture() == mShootTexture) {
                 mSprite.setTexture(*mRightTexture); 
             }
         }

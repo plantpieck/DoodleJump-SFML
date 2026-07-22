@@ -142,7 +142,7 @@ void Game::loadResources() {
     if (!mBgMusic.openFromFile("sounds/MainMenu_Song.flac")) {
         std::cerr << "Failed to load background music!\n";
     }
-    mBgMusic.setLoop(true);
+    mBgMusic.setLooping(true);
 
     applyVolume();
     mBgMusic.play();
@@ -242,9 +242,26 @@ void Game::processEvents() {
 
 void Game::update(float dt) {
     if (mState == GameState::Playing) {
+
         mPlayer->handleInput();
         mPlayer->update(dt);
-    
+
+        for (auto platform : mPlatforms) {
+            platform->update(dt);
+        }
+
+        handleCollisions();
+
+        float playerY = mPlayer->getPosition().y;
+        if (playerY < mWorldView.getCenter().y) {
+            mWorldView.setCenter({250.f, playerY});
+        }
+
+        int currentScore = static_cast<int>(600.f - playerY);
+        if (currentScore > mScore) {
+            mScore = currentScore;
+        }
+
         if (mFireTimer > 0.f) {
             mFireTimer -= dt;
         }
@@ -256,10 +273,12 @@ void Game::update(float dt) {
             sf::FloatRect playerBounds = mPlayer->getBounds();
             sf::Vector2f spawnPos(playerBounds.position.x + playerBounds.size.x / 2.f, playerBounds.position.y);
             mBullets.push_back(new Bullet(mTextures.get("bullet"), spawnPos));
-            mShootSound.play();
+            mShootSound.play(); 
         }
 
         float topEdge = mWorldView.getCenter().y - 400.f;
+        float bottomEdge = mWorldView.getCenter().y + 400.f;
+
         for (auto it = mBullets.begin(); it != mBullets.end(); ) {
             (*it)->update(dt);
             if ((*it)->getPosition().y < topEdge) {
@@ -290,10 +309,6 @@ void Game::update(float dt) {
             }
         }
 
-        for (auto platform : mPlatforms) {
-            platform->update(dt);
-        }
-
         for (auto it = mMonsters.begin(); it != mMonsters.end(); ) {
             (*it)->update(dt);
             
@@ -305,20 +320,6 @@ void Game::update(float dt) {
                 ++it;
             }
         }
-
-        handleCollisions();
-
-        float playerY = mPlayer->getPosition().y;
-        if (playerY < mWorldView.getCenter().y) {
-            mWorldView.setCenter({250.f, playerY});
-        }
-
-        int currentScore = static_cast<int>(600.f - playerY);
-        if (currentScore > mScore) {
-            mScore = currentScore;
-        }
-
-        float bottomEdge = mWorldView.getCenter().y + 400.f;
 
         while (!mPlatforms.empty() && mPlatforms.front()->getPosition().y > bottomEdge) {
             delete mPlatforms.front();
@@ -332,7 +333,7 @@ void Game::update(float dt) {
                 saveHighScores();
             }
             mState = GameState::GameOver;
-            mLoseSound.play();
+            mLoseSound.play(); 
         }
     }
 }
