@@ -1,21 +1,32 @@
 #include "../include/Player.hpp"
 
-Player::Player(sf::Texture& leftTex, sf::Texture& rightTex) 
-    : mSprite(rightTex), mLeftTexture(&leftTex), mRightTexture(&rightTex), mSpeed(300.f), mGravity(800.f), mJumpVelocity(-600.f) {
+Player::Player(sf::Texture& leftTex, sf::Texture& rightTex, sf::Texture& shootTex) 
+    : mSprite(rightTex), mLeftTexture(&leftTex), mRightTexture(&rightTex), mShootTexture(&shootTex),
+      mSpeed(300.f), mGravity(800.f), mJumpVelocity(-600.f), mIsShooting(false) {
     mSprite.setPosition({250.f, 400.f});
     mSprite.setScale({0.55f, 0.55f});
 }
 
 void Player::handleInput() {
     mVelocity.x = 0.f;
+    mIsShooting = false;
     
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)) {
-        mVelocity.x = -mSpeed;
-        mSprite.setTexture(*mLeftTexture);
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) {
-        mVelocity.x = mSpeed;
-        mSprite.setTexture(*mRightTexture);
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
+        mIsShooting = true;
+        mSprite.setTexture(*mShootTexture);
+    } else {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)) {
+            mVelocity.x = -mSpeed;
+            mSprite.setTexture(*mLeftTexture);
+        }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) {
+            mVelocity.x = mSpeed;
+            mSprite.setTexture(*mRightTexture);
+        } else {
+            if (mSprite.getTexture() == mShootTexture) {
+                mSprite.setTexture(*mRightTexture); 
+            }
+        }
     }
 }
 
@@ -57,4 +68,8 @@ sf::Vector2f Player::getPosition() const {
 
 void Player::setPosition(sf::Vector2f pos) {
     mSprite.setPosition(pos);
+}
+
+bool Player::isShooting() const {
+    return mIsShooting;
 }
