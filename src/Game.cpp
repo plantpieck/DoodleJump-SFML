@@ -130,6 +130,46 @@ void Game::loadResources() {
 
     mMenuButton = new sf::Sprite(mTextures.get("button_menu"));
     mMenuButton->setPosition({250.f - mMenuButton->getGlobalBounds().size.x / 2.f, 520.f});
+ 
+    mTextures.load("button_settings", "assets/Settings_button.png");
+    mTextures.load("button_back", "assets/back_button.png");
+    
+    mSettingsButton = new sf::Sprite(mTextures.get("button_settings"));
+    mSettingsButton->setPosition({250.f - mSettingsButton->getGlobalBounds().size.x / 2.f, 600.f});
+
+    mBackButton = new sf::Sprite(mTextures.get("button_back"));
+    mBackButton->setPosition({250.f - mBackButton->getGlobalBounds().size.x / 2.f, 650.f});
+
+    mSettingsTitleText.setString("SETTINGS");
+    mSettingsTitleText.setCharacterSize(40);
+    mSettingsTitleText.setFillColor(sf::Color({20, 80, 120}));
+    mSettingsTitleText.setStyle(sf::Text::Bold);
+    mSettingsTitleText.setPosition({250.f - mSettingsTitleText.getGlobalBounds().size.x / 2.f, 100.f});
+
+    mVolumeText.setString("Volume:");
+    mVolumeText.setCharacterSize(24);
+    mVolumeText.setFillColor(sf::Color({50, 50, 50}));
+    mVolumeText.setPosition({50.f, 250.f});
+
+    mSliderTrack.setSize({200.f, 10.f});
+    mSliderTrack.setFillColor(sf::Color({150, 150, 150}));
+    mSliderTrack.setPosition({200.f, 260.f});
+
+    mSliderHandle.setSize({15.f, 30.f});
+    mSliderHandle.setFillColor(sf::Color::Red);
+    mSliderHandle.setOrigin({7.5f, 15.f});
+
+    mEasyText.setString("EASY");
+    mEasyText.setCharacterSize(30);
+    mEasyText.setPosition({250.f - mEasyText.getGlobalBounds().size.x / 2.f, 380.f});
+
+    mMediumText.setString("MEDIUM");
+    mMediumText.setCharacterSize(30);
+    mMediumText.setPosition({250.f - mMediumText.getGlobalBounds().size.x / 2.f, 450.f});
+
+    mHardText.setString("HARD");
+    mHardText.setCharacterSize(30);
+    mHardText.setPosition({250.f - mHardText.getGlobalBounds().size.x / 2.f, 520.f});
 
     mSoundBuffers.load("jump", "sounds/Jumping_Sound.wav");
     mSoundBuffers.load("shoot", "sounds/Shooting_Sound.wav");
@@ -223,17 +263,40 @@ void Game::processEvents() {
                 if (mState == GameState::Menu) {
                     if (mStartButton->getGlobalBounds().contains(mousePos)) {
                         mState = GameState::Playing;
+                        mBgMusic.stop(); 
                         resetGame();
-                        mBgMusic.stop();
+                    } else if (mSettingsButton->getGlobalBounds().contains(mousePos)) {
+                        mState = GameState::Settings; 
                     }
                 } else if (mState == GameState::GameOver) {
                     if (mRestartButton->getGlobalBounds().contains(mousePos)) {
                         mState = GameState::Playing;
+                        mBgMusic.stop();
                         resetGame();
                     } else if (mMenuButton->getGlobalBounds().contains(mousePos)) {
                         mState = GameState::Menu;
-                        mBgMusic.play();
+                        mBgMusic.play(); 
                     }
+                } else if (mState == GameState::Settings) {
+                    processSettingsEvents(mousePos); 
+                }
+            }
+        }
+        
+        if (const auto* mouseMove = event->getIf<sf::Event::MouseMoved>()) {
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left) && mState == GameState::Settings) {
+                sf::Vector2f mousePos(static_cast<float>(mouseMove->position.x), static_cast<float>(mouseMove->position.y));
+                
+                sf::FloatRect trackBounds = mSliderTrack.getGlobalBounds();
+                trackBounds.position.y -= 20.f;
+                trackBounds.size.y += 40.f;
+                trackBounds.position.x -= 20.f;
+                trackBounds.size.x += 40.f;
+                
+                if (trackBounds.contains(mousePos)) {
+                    float newVolume = (mousePos.x - mSliderTrack.getPosition().x) / mSliderTrack.getSize().x * 100.f;
+                    mVolume = std::clamp(newVolume, 0.f, 100.f);
+                    applyVolume(); 
                 }
             }
         }
@@ -393,6 +456,27 @@ void Game::handleCollisions() {
     }
 }
 
+void Game::renderSettings() {
+    mWindow.setView(mWindow.getDefaultView());
+    mWindow.draw(*mBackground);
+
+    mWindow.draw(mSettingsTitleText);
+    mWindow.draw(mVolumeText);
+    mWindow.draw(mSliderTrack);
+    
+    mSliderHandle.setPosition({200.f + (mVolume / 100.f) * 200.f, 265.f});
+    mWindow.draw(mSliderHandle);
+
+    mEasyText.setFillColor(mDifficulty == Difficulty::Easy ? sf::Color::Red : sf::Color({50, 50, 50}));
+    mMediumText.setFillColor(mDifficulty == Difficulty::Medium ? sf::Color::Red : sf::Color({50, 50, 50}));
+    mHardText.setFillColor(mDifficulty == Difficulty::Hard ? sf::Color::Red : sf::Color({50, 50, 50}));
+
+    mWindow.draw(mEasyText);
+    mWindow.draw(mMediumText);
+    mWindow.draw(mHardText);
+    mWindow.draw(*mBackButton);
+}
+
 void Game::render() {
     mWindow.clear(sf::Color::White);
     mWindow.setView(mWindow.getDefaultView());
@@ -439,6 +523,7 @@ void Game::render() {
         mWindow.draw(highText);
 
         mWindow.draw(*mStartButton);
+        mWindow.draw(*mSettingsButton);
         
     } else if (mState == GameState::GameOver) {
         mWindow.setView(mWindow.getDefaultView());
@@ -461,6 +546,9 @@ void Game::render() {
 
         mWindow.draw(*mRestartButton);
         mWindow.draw(*mMenuButton);
+    }
+    else if (mState == GameState::Settings) {
+        renderSettings();
     }
 
     mWindow.display();
@@ -519,4 +607,22 @@ void Game::applyVolume() {
     mJumpSound.setVolume(mVolume);
     mShootSound.setVolume(mVolume);
     mLoseSound.setVolume(mVolume);
+}
+
+void Game::processSettingsEvents(sf::Vector2f mousePos) {
+    if (mEasyText.getGlobalBounds().contains(mousePos)) {
+        mDifficulty = Difficulty::Easy;
+    } else if (mMediumText.getGlobalBounds().contains(mousePos)) {
+        mDifficulty = Difficulty::Medium;
+    } else if (mHardText.getGlobalBounds().contains(mousePos)) {
+        mDifficulty = Difficulty::Hard;
+    } else if (mBackButton->getGlobalBounds().contains(mousePos)) {
+        saveSettings(); 
+        mState = GameState::Menu;
+    }
+    else if (mSliderTrack.getGlobalBounds().contains(mousePos) || mSliderHandle.getGlobalBounds().contains(mousePos)) {
+        float newVolume = (mousePos.x - mSliderTrack.getPosition().x) / mSliderTrack.getSize().x * 100.f;
+        mVolume = std::clamp(newVolume, 0.f, 100.f);
+        applyVolume();
+    }
 }
