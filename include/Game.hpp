@@ -6,6 +6,7 @@
 #include "Player.hpp"
 #include "Platform.hpp"
 #include "Monster.hpp"
+#include "Bullet.hpp"
 
 enum class GameState { Menu, Playing, GameOver, Settings };
 enum class Difficulty { Easy, Medium, Hard };
@@ -24,6 +25,8 @@ private:
     std::vector<Platform*> mPlatforms;
 
     std::vector<Monster*> mMonsters;
+    std::vector<Bullet*> mBullets;
+    float mFireTimer;
     
     bool isPositionValid(sf::FloatRect bounds);
     void spawnMonster(float baseY);

@@ -17,7 +17,7 @@ Game::Game() : mWindow(sf::VideoMode({500, 800}), "Doodle Jump - Phase 2"), mSta
     loadHighScores();
     loadResources();
     
-    mPlayer = new Player(mTextures.get("doodle_left"), mTextures.get("doodle_right"));
+    mPlayer = new Player(mTextures.get("doodle_left"), mTextures.get("doodle_right"), mTextures.get("doodle_shoot"));
     resetGame();
 }
 
@@ -42,6 +42,12 @@ Game::~Game() {
         delete monster;
     }
     mMonsters.clear();
+
+    for (auto bullet : mBullets) {
+        delete bullet;
+    }
+    mBullets.clear();
+    mFireTimer = 0.f;
 }
 
 void Game::loadSettings() {
@@ -105,6 +111,8 @@ void Game::loadResources() {
     mTextures.load("spring", "assets/spring_sprite.png");
     mTextures.load("monster1", "assets/BlueMonster.png");
     mTextures.load("monster2", "assets/green_monster.png");
+    mTextures.load("doodle_shoot", "assets/Shooting@Pose.png");
+    mTextures.load("bullet", "assets/Nose.png");
     
     if (!mFont.openFromFile("fonts/ariblk.ttf")) {
         std::cerr << "Failed to load font!\n";
@@ -142,6 +150,12 @@ void Game::resetGame() {
         delete monster;
     }
     mMonsters.clear();
+
+    for (auto bullet : mBullets) {
+        delete bullet;
+    }
+    mBullets.clear();
+    mFireTimer = 0.f;
 }
 
 void Game::generatePlatforms(float startY) {
@@ -212,6 +226,50 @@ void Game::update(float dt) {
     if (mState == GameState::Playing) {
         mPlayer->handleInput();
         mPlayer->update(dt);
+    
+        if (mFireTimer > 0.f) {
+            mFireTimer -= dt;
+        }
+
+        if (mPlayer->isShooting() && mFireTimer <= 0.f) {
+            float fireRate = (mDifficulty == Difficulty::Easy) ? 0.2f : 0.4f;
+            mFireTimer = fireRate;
+
+            sf::FloatRect playerBounds = mPlayer->getBounds();
+            sf::Vector2f spawnPos(playerBounds.position.x + playerBounds.size.x / 2.f, playerBounds.position.y);
+            mBullets.push_back(new Bullet(mTextures.get("bullet"), spawnPos));
+        }
+
+        float topEdge = mWorldView.getCenter().y - 400.f;
+        for (auto it = mBullets.begin(); it != mBullets.end(); ) {
+            (*it)->update(dt);
+            if ((*it)->getPosition().y < topEdge) {
+                delete *it;
+                it = mBullets.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        for (auto bIt = mBullets.begin(); bIt != mBullets.end(); ) {
+            bool bulletHit = false;
+            sf::FloatRect bulletBounds = (*bIt)->getBounds();
+            
+            for (auto mIt = mMonsters.begin(); mIt != mMonsters.end(); ++mIt) {
+                if (bulletBounds.findIntersection((*mIt)->getBounds()).has_value()) {
+                    (*mIt)->takeDamage(); 
+                    bulletHit = true;
+                    break; 
+                }
+            }
+
+            if (bulletHit) {
+                delete *bIt;
+                bIt = mBullets.erase(bIt);
+            } else {
+                ++bIt;
+            }
+        }
 
         for (auto platform : mPlatforms) {
             platform->update(dt);
@@ -324,6 +382,10 @@ void Game::render() {
 
         for (auto monster : mMonsters) {
             monster->render(mWindow);
+        }
+
+        for (auto bullet : mBullets) {
+            bullet->render(mWindow);
         }
 
         mPlayer->render(mWindow);
