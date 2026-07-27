@@ -113,6 +113,8 @@ void Game::loadResources() {
     mTextures.load("monster2", "assets/green_monster.png");
     mTextures.load("doodle_shoot", "assets/Shooting@Pose.png");
     mTextures.load("bullet", "assets/Nose.png");
+    mTextures.load("button_settings", "assets/Settings_button.png");
+    mTextures.load("button_back", "assets/back_button.png");
     
     if (!mFont.openFromFile("fonts/ariblk.ttf")) {
         std::cerr << "Failed to load font!\n";
@@ -122,20 +124,43 @@ void Game::loadResources() {
     auto bgSize = mTextures.get("background").getSize();
     mBackground->setScale({500.f / static_cast<float>(bgSize.x), 800.f / static_cast<float>(bgSize.y)});
 
+    mTitleText.setFont(mFont);
+    mTitleText.setString("DOODLE JUMP");
+    mTitleText.setCharacterSize(44);
+    mTitleText.setFillColor(sf::Color(20, 80, 120));
+    mTitleText.setStyle(sf::Text::Bold);
+    mTitleText.setPosition({250.f - mTitleText.getGlobalBounds().size.x / 2.f, 100.f});
+
     mStartButton = new sf::Sprite(mTextures.get("button_start"));
-    mStartButton->setPosition({250.f - mStartButton->getGlobalBounds().size.x / 2.f, 350.f});
+    mStartButton->setPosition({250.f - mStartButton->getGlobalBounds().size.x / 2.f, 250.f});
+
+    mSettingsButton = new sf::Sprite(mTextures.get("button_settings"));
+    mSettingsButton->setPosition({250.f - mSettingsButton->getGlobalBounds().size.x / 2.f, 330.f});
+
+    mModeText.setFont(mFont);
+    mModeText.setCharacterSize(16);
+    mModeText.setFillColor(sf::Color(50, 50, 50));
+    mModeText.setStyle(sf::Text::Bold);
+
+    mInstructionText1.setFont(mFont);
+    mInstructionText1.setString("Use Left / Right arrows to move");
+    mInstructionText1.setCharacterSize(14);
+    mInstructionText1.setFillColor(sf::Color(50, 50, 50));
+    mInstructionText1.setStyle(sf::Text::Bold);
+    mInstructionText1.setPosition({250.f - mInstructionText1.getGlobalBounds().size.x / 2.f, 450.f});
+
+    mInstructionText2.setFont(mFont);
+    mInstructionText2.setString("Hold Space to shoot the monsters");
+    mInstructionText2.setCharacterSize(14);
+    mInstructionText2.setFillColor(sf::Color(50, 50, 50));
+    mInstructionText2.setStyle(sf::Text::Bold);
+    mInstructionText2.setPosition({250.f - mInstructionText2.getGlobalBounds().size.x / 2.f, 480.f});
 
     mRestartButton = new sf::Sprite(mTextures.get("button_restart"));
     mRestartButton->setPosition({250.f - mRestartButton->getGlobalBounds().size.x / 2.f, 420.f});
 
     mMenuButton = new sf::Sprite(mTextures.get("button_menu"));
     mMenuButton->setPosition({250.f - mMenuButton->getGlobalBounds().size.x / 2.f, 520.f});
- 
-    mTextures.load("button_settings", "assets/Settings_button.png");
-    mTextures.load("button_back", "assets/back_button.png");
-    
-    mSettingsButton = new sf::Sprite(mTextures.get("button_settings"));
-    mSettingsButton->setPosition({250.f - mSettingsButton->getGlobalBounds().size.x / 2.f, 600.f});
 
     mBackButton = new sf::Sprite(mTextures.get("button_back"));
     mBackButton->setPosition({250.f - mBackButton->getGlobalBounds().size.x / 2.f, 650.f});
@@ -206,6 +231,7 @@ void Game::resetGame() {
         delete monster;
     }
     mMonsters.clear();
+    spawnMonster(200.f);
 
     for (auto bullet : mBullets) {
         delete bullet;
@@ -384,6 +410,10 @@ void Game::update(float dt) {
             }
         }
 
+        if (mMonsters.empty()) {
+            spawnMonster(topEdge - 200.f);
+        }
+
         while (!mPlatforms.empty() && mPlatforms.front()->getPosition().y > bottomEdge) {
             delete mPlatforms.front();
             mPlatforms.erase(mPlatforms.begin());
@@ -402,27 +432,31 @@ void Game::update(float dt) {
 }
 
 void Game::handleCollisions() {
-    if (mPlayer->getVelocityY() > 0.f) {
-        sf::FloatRect playerBounds = mPlayer->getBounds();
-        
-        for (auto monster : mMonsters) {
-            sf::FloatRect monsterBounds = monster->getBounds();
-            if (playerBounds.findIntersection(monsterBounds).has_value()) {
-                if (mPlayer->getVelocityY() > 0.f && 
-                    playerBounds.position.y + playerBounds.size.y < monsterBounds.position.y + monsterBounds.size.y * 0.5f) {
-                    mJumpSound.play();
-                    mPlayer->superJump(); 
-                } else {
-                    mState = GameState::GameOver;
-                    if (mScore > mHighScores[mDifficulty]) {
-                        mHighScores[mDifficulty] = mScore;
-                        saveHighScores();
-                    }
-                    return; 
+    sf::FloatRect playerBounds = mPlayer->getBounds();
+
+    for (auto monster : mMonsters) {
+        sf::FloatRect monsterBounds = monster->getBounds();
+        if (playerBounds.findIntersection(monsterBounds).has_value()) {
+            
+            if (mPlayer->getVelocityY() > 0.f && 
+                playerBounds.position.y + playerBounds.size.y < monsterBounds.position.y + monsterBounds.size.y * 0.5f) {
+                
+                monster->dieInstantly(); 
+                mJumpSound.play();
+                mPlayer->superJump(); 
+            } else {
+                mState = GameState::GameOver;
+                mLoseSound.play(); 
+                if (mScore > mHighScores[mDifficulty]) {
+                    mHighScores[mDifficulty] = mScore;
+                    saveHighScores();
                 }
+                return; 
             }
         }
+    }
 
+    if (mPlayer->getVelocityY() > 0.f) {
         for (auto platform : mPlatforms) {
             sf::FloatRect platformBounds = platform->getBounds();
             
@@ -464,16 +498,35 @@ void Game::renderSettings() {
     mWindow.draw(mVolumeText);
     mWindow.draw(mSliderTrack);
     
-    mSliderHandle.setPosition({200.f + (mVolume / 100.f) * 200.f, 265.f});
+    mSliderHandle.setPosition({125.f + (mVolume / 100.f) * 250.f, 232.5f});
     mWindow.draw(mSliderHandle);
 
-    mEasyText.setFillColor(mDifficulty == Difficulty::Easy ? sf::Color::Red : sf::Color({50, 50, 50}));
-    mMediumText.setFillColor(mDifficulty == Difficulty::Medium ? sf::Color::Red : sf::Color({50, 50, 50}));
-    mHardText.setFillColor(mDifficulty == Difficulty::Hard ? sf::Color::Red : sf::Color({50, 50, 50}));
+    mVolumeValueText.setString(std::to_string(static_cast<int>(mVolume)) + "%");
+    mVolumeValueText.setPosition({250.f - mVolumeValueText.getGlobalBounds().size.x / 2.f, 260.f});
+    mWindow.draw(mVolumeValueText);
 
-    mWindow.draw(mEasyText);
-    mWindow.draw(mMediumText);
-    mWindow.draw(mHardText);
+    mWindow.draw(mDifficultyTitleText);
+
+    auto applyStyle = [](sf::RectangleShape& box, sf::Text& text, bool isSelected) {
+        if (isSelected) {
+            box.setFillColor(sf::Color(20, 70, 110));
+            box.setOutlineColor(sf::Color(20, 70, 110));
+            text.setFillColor(sf::Color::White);
+        } else {
+            box.setFillColor(sf::Color(240, 240, 240)); 
+            box.setOutlineColor(sf::Color(150, 150, 150));
+            text.setFillColor(sf::Color(20, 70, 110));
+        }
+    };
+
+    applyStyle(mEasyBox, mEasyText, mDifficulty == Difficulty::Easy);
+    applyStyle(mMediumBox, mMediumText, mDifficulty == Difficulty::Medium);
+    applyStyle(mHardBox, mHardText, mDifficulty == Difficulty::Hard);
+
+    mWindow.draw(mEasyBox); mWindow.draw(mEasyText);
+    mWindow.draw(mMediumBox); mWindow.draw(mMediumText);
+    mWindow.draw(mHardBox); mWindow.draw(mHardText);
+    
     mWindow.draw(*mBackButton);
 }
 
@@ -510,21 +563,26 @@ void Game::render() {
     } else if (mState == GameState::Menu) {
         mWindow.setView(mWindow.getDefaultView());
         
-        sf::Text titleText(mFont, "DOODLE JUMP", 44);
-        titleText.setFillColor(sf::Color({20, 80, 120}));
-        titleText.setStyle(sf::Text::Bold);
-        titleText.setPosition({250.f - titleText.getGlobalBounds().size.x / 2.f, 150.f});
-        mWindow.draw(titleText);
+        mWindow.draw(mTitleText);
 
-        // نمایش رکورد مختص به سطح دشواری فعلی
-        sf::Text highText(mFont, "HIGH SCORE: " + std::to_string(mHighScores[mDifficulty]), 24);
+        std::string modeStr = (mDifficulty == Difficulty::Easy) ? "EASY" : 
+                              (mDifficulty == Difficulty::Medium) ? "MEDIUM" : "HARD";
+                              
+        sf::Text highText(mFont, "HIGH SCORE (" + modeStr + "): " + std::to_string(mHighScores[mDifficulty]), 20);
         highText.setFillColor(sf::Color({50, 50, 50}));
-        highText.setPosition({250.f - highText.getGlobalBounds().size.x / 2.f, 250.f});
+        highText.setStyle(sf::Text::Bold);
+        highText.setPosition({250.f - highText.getGlobalBounds().size.x / 2.f, 180.f});
         mWindow.draw(highText);
 
         mWindow.draw(*mStartButton);
         mWindow.draw(*mSettingsButton);
         
+        mModeText.setString("Mode: " + modeStr);
+        mModeText.setPosition({250.f - mModeText.getGlobalBounds().size.x / 2.f, 400.f});
+        
+        mWindow.draw(mModeText);
+        mWindow.draw(mInstructionText1);
+        mWindow.draw(mInstructionText2);
     } else if (mState == GameState::GameOver) {
         mWindow.setView(mWindow.getDefaultView());
         
@@ -587,8 +645,11 @@ void Game::spawnMonster(float baseY) {
     std::uniform_real_distribution<float> yDist(baseY - 300.f, baseY - 50.f);
     std::uniform_int_distribution<int> texDist(1, 2);
 
-    int health = (mDifficulty == Difficulty::Easy) ? 1 : ((mDifficulty == Difficulty::Medium) ? 2 : 3);
+    int health = (mDifficulty == Difficulty::Easy) ? 3 : 5;
+    
     std::string texName = (texDist(gen) == 1) ? "monster1" : "monster2";
+    
+    int frames = (texName == "monster1") ? 2 : 1; 
     
     for(int attempts = 0; attempts < 10; ++attempts) {
         float x = xDist(gen);
@@ -596,7 +657,7 @@ void Game::spawnMonster(float baseY) {
         sf::FloatRect testBounds({x, y}, {60.f, 60.f}); 
         
         if (isPositionValid(testBounds)) {
-            mMonsters.push_back(new Monster(mTextures.get(texName), {x, y}, health));
+            mMonsters.push_back(new Monster(mTextures.get(texName), {x, y}, health, frames));
             break;
         }
     }

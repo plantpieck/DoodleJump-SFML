@@ -7,9 +7,11 @@ private:
     float mSpeed;
     int mDirection;
     int mHealth;
+    bool mIsDead;
 
 public:
-    Monster(sf::Texture& texture, sf::Vector2f position, int initialHealth);
+    Monster(sf::Texture& texture, sf::Vector2f position, int initialHealth, int frames = 1);
+    
     void update(float dt);
     void render(sf::RenderWindow& window);
     
@@ -18,5 +20,6 @@ public:
     void move(float offsetX, float offsetY);
     
     void takeDamage();
+    void dieInstantly(); 
     bool isDead() const;
 };

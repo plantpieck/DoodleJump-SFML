@@ -59,6 +59,9 @@ private:
 
     sf::RectangleShape mSliderTrack;
     sf::RectangleShape mSliderHandle;
+    
+    // متون جدید با مقداردهی اولیه فونت برای رفع ارور کامپایلر
+    sf::Text mTitleText{mFont}; 
     sf::Text mSettingsTitleText{mFont};
     sf::Text mVolumeText{mFont};
     sf::Text mEasyText{mFont};
@@ -66,6 +69,13 @@ private:
     sf::Text mHardText{mFont};
     sf::Text mBackText{mFont};
     sf::Text mSettingsButtonText{mFont};
+    sf::Text mModeText{mFont};
+    sf::Text mInstructionText1{mFont};
+    sf::Text mInstructionText2{mFont};
+    sf::Text mVolumeValueText{mFont};
+    sf::Text mDifficultyTitleText{mFont};
+    sf::Text mLostText{mFont};
+    sf::Text mCurrentScoreText{mFont};
 
     ResourceManager<sf::SoundBuffer, std::string> mSoundBuffers;
     sf::SoundBuffer mDummyBuffer; 
@@ -75,6 +85,10 @@ private:
     sf::Music mBgMusic;
     
     void applyVolume(); 
+
+    sf::RectangleShape mEasyBox;
+    sf::RectangleShape mMediumBox;
+    sf::RectangleShape mHardBox;
 
 public:
     Game();
