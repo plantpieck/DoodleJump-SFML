@@ -385,12 +385,15 @@ void Game::processEvents() {
 
 void Game::update(float dt) {
     if (mState == GameState::Playing) {
-
         mPlayer->handleInput();
         mPlayer->update(dt);
 
         for (auto platform : mPlatforms) {
             platform->update(dt);
+        }
+
+        for (auto* bh : mBlackHoles) {
+            bh->update(dt);
         }
 
         handleCollisions();
@@ -409,14 +412,15 @@ void Game::update(float dt) {
             mFireTimer -= dt;
         }
 
-        if (mPlayer->isShooting() && mFireTimer <= 0.f) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) && mFireTimer <= 0.f) {
             float fireRate = (mDifficulty == Difficulty::Easy) ? 0.2f : 0.4f;
             mFireTimer = fireRate;
 
             sf::FloatRect playerBounds = mPlayer->getBounds();
             sf::Vector2f spawnPos(playerBounds.position.x + playerBounds.size.x / 2.f, playerBounds.position.y);
             mBullets.push_back(new Bullet(mTextures.get("bullet"), spawnPos));
-            mShootSound.play(); 
+            mShootSound.play();
+            mPlayer->setTexture(mTextures.get("doodle_shoot"));
         }
 
         float topEdge = mWorldView.getCenter().y - 400.f;
@@ -429,26 +433,6 @@ void Game::update(float dt) {
                 it = mBullets.erase(it);
             } else {
                 ++it;
-            }
-        }
-
-        for (auto bIt = mBullets.begin(); bIt != mBullets.end(); ) {
-            bool bulletHit = false;
-            sf::FloatRect bulletBounds = (*bIt)->getBounds();
-            
-            for (auto mIt = mMonsters.begin(); mIt != mMonsters.end(); ++mIt) {
-                if (bulletBounds.findIntersection((*mIt)->getBounds()).has_value()) {
-                    (*mIt)->takeDamage(); 
-                    bulletHit = true;
-                    break; 
-                }
-            }
-
-            if (bulletHit) {
-                delete *bIt;
-                bIt = mBullets.erase(bIt);
-            } else {
-                ++bIt;
             }
         }
 
@@ -482,32 +466,8 @@ void Game::update(float dt) {
             mState = GameState::GameOver;
             mLoseSound.play(); 
         }
-        if (mFireTimer > 0.f) {
-            mFireTimer -= dt;
-        }
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) && mFireTimer <= 0.f) {
-            mBullets.push_back(new Bullet(mTextures.get("bullet"), mPlayer->getPosition()));
-            mShootSound.play();
-            mFireTimer = 0.3f;
-        }
-
-        for (auto* bh : mBlackHoles) {
-            bh->update(dt);
-        }
-
-        for (auto it = mBullets.begin(); it != mBullets.end(); ) {
-            (*it)->update(dt);
-            if ((*it)->getPosition().y < mWorldView.getCenter().y - 400.f) {
-                delete *it;
-                it = mBullets.erase(it);
-            } else {
-                ++it;
-            }
-        }
     }
 }
-
 void Game::handleCollisions() {
     sf::FloatRect playerBounds = mPlayer->getBounds();
     for (auto* bh : mBlackHoles) {

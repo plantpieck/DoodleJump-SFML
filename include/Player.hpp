@@ -25,4 +25,5 @@ public:
     sf::FloatRect getBounds() const;
     sf::Vector2f getPosition() const;
     void setPosition(sf::Vector2f pos);
+    void setTexture(const sf::Texture& texture);
 };

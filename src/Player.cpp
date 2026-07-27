@@ -75,3 +75,8 @@ void Player::setPosition(sf::Vector2f pos) {
 bool Player::isShooting() const {
     return mIsShooting;
 }
+
+void Player::setTexture(const sf::Texture& texture) {
+    mSprite.setTexture(texture, true);
+    mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
+}
