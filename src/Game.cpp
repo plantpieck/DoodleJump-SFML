@@ -52,38 +52,38 @@ Game::~Game() {
 
 void Game::loadSettings() {
     std::ifstream file("settings.txt");
+    mVolume = 50.f;
+    mDifficulty = Difficulty::Medium;
+
     if (file.is_open()) {
-        int diffInt;
-        file >> mVolume >> diffInt;
-        mDifficulty = static_cast<Difficulty>(diffInt);
+        file >> mVolume;
+        int diff;
+        if (file >> diff) {
+            mDifficulty = static_cast<Difficulty>(diff);
+        }
         file.close();
-    } else {
-        mVolume = 50.f; 
-        mDifficulty = Difficulty::Medium; 
     }
 }
 
 void Game::saveSettings() {
     std::ofstream file("settings.txt");
     if (file.is_open()) {
-        file << mVolume << " " << static_cast<int>(mDifficulty);
+        file << mVolume << "\n";
+        file << static_cast<int>(mDifficulty) << "\n";
         file.close();
     }
 }
 
 void Game::loadHighScores() {
+    std::ifstream file("highscore.txt");
     mHighScores[Difficulty::Easy] = 0;
     mHighScores[Difficulty::Medium] = 0;
     mHighScores[Difficulty::Hard] = 0;
-    
-    std::ifstream file("highscore.txt");
+
     if (file.is_open()) {
-        int e, m, h;
-        if (file >> e >> m >> h) {
-            mHighScores[Difficulty::Easy] = e;
-            mHighScores[Difficulty::Medium] = m;
-            mHighScores[Difficulty::Hard] = h;
-        }
+        file >> mHighScores[Difficulty::Easy];
+        file >> mHighScores[Difficulty::Medium];
+        file >> mHighScores[Difficulty::Hard];
         file.close();
     }
 }
@@ -91,9 +91,9 @@ void Game::loadHighScores() {
 void Game::saveHighScores() {
     std::ofstream file("highscore.txt");
     if (file.is_open()) {
-        file << mHighScores[Difficulty::Easy] << " "
-             << mHighScores[Difficulty::Medium] << " "
-             << mHighScores[Difficulty::Hard];
+        file << mHighScores[Difficulty::Easy] << "\n";
+        file << mHighScores[Difficulty::Medium] << "\n";
+        file << mHighScores[Difficulty::Hard] << "\n";
         file.close();
     }
 }
@@ -740,46 +740,44 @@ void Game::run() {
 }
 
 bool Game::isPositionValid(sf::FloatRect bounds) {
-    sf::FloatRect expandedBounds = bounds;
-    expandedBounds.position.x -= 20.f;
-    expandedBounds.size.x += 40.f;
-    expandedBounds.position.y -= 20.f;
-    expandedBounds.size.y += 40.f;
-
-    for (auto plat : mPlatforms) {
-        if (plat->getBounds().findIntersection(expandedBounds).has_value()) return false;
+    for (auto platform : mPlatforms) {
+        if (bounds.findIntersection(platform->getBounds()).has_value()) {
+            return false;
+        }
     }
-    for (auto m : mMonsters) {
-        if (m->getBounds().findIntersection(expandedBounds).has_value()) return false;
+    for (auto monster : mMonsters) {
+        if (bounds.findIntersection(monster->getBounds()).has_value()) {
+            return false;
+        }
+    }
+    for (auto bh : mBlackHoles) {
+        if (bounds.findIntersection(bh->getBounds()).has_value()) {
+            return false;
+        }
     }
     return true;
 }
 
 void Game::spawnMonster(float baseY) {
-    if (baseY > 0.f) return;
+    if (baseY > -300.f) return;
 
-    float randomX = static_cast<float>(rand() % 350 + 25);
-    sf::Vector2f pos(randomX, baseY - 100.f);
+    float platformX = mPlatforms.back()->getPosition().x;
+    float safeX = 0.f;
+    
+    if (platformX < 200.f) {
+        safeX = platformX + 160.f + (rand() % 50);
+    } else {
+        safeX = platformX - 160.f - (rand() % 50);
+    }
+
+    if (safeX < 20.f) safeX = 20.f;
+    if (safeX > 380.f) safeX = 380.f;
+
+    sf::Vector2f pos(safeX, baseY - 80.f);
     
     Monster* newMonster = new Monster(mTextures.get("monster"), pos);
-    sf::FloatRect monsterBounds = newMonster->getBounds();
-    bool overlap = false;
 
-    for (auto platform : mPlatforms) {
-        if (monsterBounds.findIntersection(platform->getBounds()).has_value()) {
-            overlap = true;
-            break;
-        }
-    }
-
-    for (auto bh : mBlackHoles) {
-        if (monsterBounds.findIntersection(bh->getBounds()).has_value()) {
-            overlap = true;
-            break;
-        }
-    }
-
-    if (!overlap) {
+    if (isPositionValid(newMonster->getBounds())) {
         mMonsters.push_back(newMonster);
     } else {
         delete newMonster;
@@ -815,33 +813,35 @@ void Game::processSettingsEvents(sf::Vector2f mousePos) {
 
 void Game::spawnBlackHole(float baseY) {
     if (mDifficulty != Difficulty::Hard) return; 
-    if (baseY > 0.f) return; 
+    if (baseY > -300.f) return; 
 
     if (rand() % 100 < 15) { 
-        float randomX = static_cast<float>(rand() % 350 + 25); 
-        sf::Vector2f pos(randomX, baseY - 120.f);
+        float platformX = mPlatforms.back()->getPosition().x;
+        float safeX = 0.f;
+        
+        if (platformX < 200.f) {
+            safeX = platformX + 160.f + (rand() % 50);
+        } else {
+            safeX = platformX - 160.f - (rand() % 50);
+        }
+
+        if (safeX < 20.f) safeX = 20.f;
+        if (safeX > 380.f) safeX = 380.f;
+
+        sf::Vector2f pos(safeX, baseY - 80.f);
         
         BlackHole* newBH = new BlackHole(mTextures.get("black_hole"), pos);
         
         if (rand() % 2 == 0) {
-            newBH->setScale(0.6f); 
+            newBH->setScale(0.6f);
         } else {
-            newBH->setScale(1.0f); 
+            newBH->setScale(1.0f);
         }
 
-        bool overlap = false;
-        sf::FloatRect bhBounds = newBH->getBounds();
-        for (auto platform : mPlatforms) {
-            if (bhBounds.findIntersection(platform->getBounds()).has_value()) {
-                overlap = true;
-                break;
-            }
-        }
-
-        if (!overlap) {
+        if (isPositionValid(newBH->getBounds())) {
             mBlackHoles.push_back(newBH);
         } else {
-            delete newBH; 
+            delete newBH;
         }
     }
 }
