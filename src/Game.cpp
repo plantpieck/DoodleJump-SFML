@@ -148,17 +148,79 @@ void Game::loadResources() {
 
     mInstructionText1.setFont(mFont);
     mInstructionText1.setString("Use Left / Right arrows to move");
-    mInstructionText1.setCharacterSize(14);
+    mInstructionText1.setCharacterSize(28);
+    mInstructionText1.setScale({0.5f, 0.5f});
     mInstructionText1.setFillColor(sf::Color(50, 50, 50));
     mInstructionText1.setStyle(sf::Text::Bold);
     mInstructionText1.setPosition({250.f - mInstructionText1.getGlobalBounds().size.x / 2.f, 450.f});
 
     mInstructionText2.setFont(mFont);
     mInstructionText2.setString("Hold Space to shoot the monsters");
-    mInstructionText2.setCharacterSize(14);
+    mInstructionText2.setCharacterSize(28);
+    mInstructionText2.setScale({0.5f, 0.5f});
     mInstructionText2.setFillColor(sf::Color(50, 50, 50));
     mInstructionText2.setStyle(sf::Text::Bold);
     mInstructionText2.setPosition({250.f - mInstructionText2.getGlobalBounds().size.x / 2.f, 480.f});
+
+    mSettingsTitleText.setFont(mFont);
+    mSettingsTitleText.setString("SETTINGS");
+    mSettingsTitleText.setCharacterSize(35);
+    mSettingsTitleText.setFillColor(sf::Color(20, 70, 110));
+    mSettingsTitleText.setStyle(sf::Text::Bold);
+    mSettingsTitleText.setPosition({250.f - mSettingsTitleText.getGlobalBounds().size.x / 2.f, 80.f});
+
+    mVolumeText.setFont(mFont);
+    mVolumeText.setString("Volume");
+    mVolumeText.setCharacterSize(20);
+    mVolumeText.setFillColor(sf::Color(20, 70, 110));
+    mVolumeText.setPosition({250.f - mVolumeText.getGlobalBounds().size.x / 2.f, 180.f});
+
+    mSliderTrack.setSize({250.f, 5.f});
+    mSliderTrack.setFillColor(sf::Color(200, 200, 200));
+    mSliderTrack.setPosition({125.f, 230.f});
+
+    mSliderHandle.setSize({15.f, 15.f});
+    mSliderHandle.setFillColor(sf::Color(20, 70, 110));
+    mSliderHandle.setOrigin({7.5f, 7.5f});
+
+    mVolumeValueText.setFont(mFont);
+    mVolumeValueText.setString("0%");
+    mVolumeValueText.setCharacterSize(16);
+    mVolumeValueText.setFillColor(sf::Color(100, 100, 100));
+    mVolumeValueText.setPosition({250.f - mVolumeValueText.getGlobalBounds().size.x / 2.f, 250.f});
+
+    mDifficultyTitleText.setFont(mFont);
+    mDifficultyTitleText.setString("Difficulty");
+    mDifficultyTitleText.setCharacterSize(20);
+    mDifficultyTitleText.setFillColor(sf::Color(20, 70, 110));
+    mDifficultyTitleText.setPosition({250.f - mDifficultyTitleText.getGlobalBounds().size.x / 2.f, 320.f});
+
+    mEasyBox.setSize({90.f, 40.f});
+    mEasyBox.setOutlineThickness(2.f);
+    mEasyBox.setPosition({100.f, 380.f});
+
+    mMediumBox.setSize({90.f, 40.f});
+    mMediumBox.setOutlineThickness(2.f);
+    mMediumBox.setPosition({205.f, 380.f});
+
+    mHardBox.setSize({90.f, 40.f});
+    mHardBox.setOutlineThickness(2.f);
+    mHardBox.setPosition({310.f, 380.f});
+
+    mEasyText.setFont(mFont);
+    mEasyText.setString("EASY");
+    mEasyText.setCharacterSize(16);
+    mEasyText.setPosition({100.f + (90.f - mEasyText.getGlobalBounds().size.x) / 2.f, 380.f + (40.f - mEasyText.getGlobalBounds().size.y) / 2.f - 5.f});
+
+    mMediumText.setFont(mFont);
+    mMediumText.setString("MEDIUM");
+    mMediumText.setCharacterSize(16);
+    mMediumText.setPosition({205.f + (90.f - mMediumText.getGlobalBounds().size.x) / 2.f, 380.f + (40.f - mMediumText.getGlobalBounds().size.y) / 2.f - 5.f});
+
+    mHardText.setFont(mFont);
+    mHardText.setString("HARD");
+    mHardText.setCharacterSize(16);
+    mHardText.setPosition({310.f + (90.f - mHardText.getGlobalBounds().size.x) / 2.f, 380.f + (40.f - mHardText.getGlobalBounds().size.y) / 2.f - 5.f});
 
     mRestartButton = new sf::Sprite(mTextures.get("button_restart"));
     float scaleRestart = 200.f / static_cast<float>(mTextures.get("button_restart").getSize().x);
@@ -173,38 +235,7 @@ void Game::loadResources() {
     mBackButton = new sf::Sprite(mTextures.get("button_back"));
     float scaleBack = 200.f / static_cast<float>(mTextures.get("button_back").getSize().x);
     mBackButton->setScale({scaleBack, scaleBack});
-    mBackButton->setPosition({250.f - mBackButton->getGlobalBounds().size.x / 2.f, 650.f});
-
-    mSettingsTitleText.setString("SETTINGS");
-    mSettingsTitleText.setCharacterSize(40);
-    mSettingsTitleText.setFillColor(sf::Color({20, 80, 120}));
-    mSettingsTitleText.setStyle(sf::Text::Bold);
-    mSettingsTitleText.setPosition({250.f - mSettingsTitleText.getGlobalBounds().size.x / 2.f, 100.f});
-
-    mVolumeText.setString("Volume:");
-    mVolumeText.setCharacterSize(24);
-    mVolumeText.setFillColor(sf::Color({50, 50, 50}));
-    mVolumeText.setPosition({50.f, 250.f});
-
-    mSliderTrack.setSize({200.f, 10.f});
-    mSliderTrack.setFillColor(sf::Color({150, 150, 150}));
-    mSliderTrack.setPosition({200.f, 260.f});
-
-    mSliderHandle.setSize({15.f, 30.f});
-    mSliderHandle.setFillColor(sf::Color::Red);
-    mSliderHandle.setOrigin({7.5f, 15.f});
-
-    mEasyText.setString("EASY");
-    mEasyText.setCharacterSize(30);
-    mEasyText.setPosition({250.f - mEasyText.getGlobalBounds().size.x / 2.f, 380.f});
-
-    mMediumText.setString("MEDIUM");
-    mMediumText.setCharacterSize(30);
-    mMediumText.setPosition({250.f - mMediumText.getGlobalBounds().size.x / 2.f, 450.f});
-
-    mHardText.setString("HARD");
-    mHardText.setCharacterSize(30);
-    mHardText.setPosition({250.f - mHardText.getGlobalBounds().size.x / 2.f, 520.f});
+    mBackButton->setPosition({250.f - mBackButton->getGlobalBounds().size.x / 2.f, 600.f});
 
     mSoundBuffers.load("jump", "sounds/Jumping_Sound.wav");
     mSoundBuffers.load("shoot", "sounds/Shooting_Sound.wav");
@@ -512,7 +543,7 @@ void Game::renderSettings() {
     mWindow.draw(mSliderHandle);
 
     mVolumeValueText.setString(std::to_string(static_cast<int>(mVolume)) + "%");
-    mVolumeValueText.setPosition({250.f - mVolumeValueText.getGlobalBounds().size.x / 2.f, 260.f});
+    mVolumeValueText.setPosition({250.f - mVolumeValueText.getGlobalBounds().size.x / 2.f, 250.f});
     mWindow.draw(mVolumeValueText);
 
     mWindow.draw(mDifficultyTitleText);
@@ -523,7 +554,7 @@ void Game::renderSettings() {
             box.setOutlineColor(sf::Color(20, 70, 110));
             text.setFillColor(sf::Color::White);
         } else {
-            box.setFillColor(sf::Color(240, 240, 240)); 
+            box.setFillColor(sf::Color(240, 240, 240));
             box.setOutlineColor(sf::Color(150, 150, 150));
             text.setFillColor(sf::Color(20, 70, 110));
         }
@@ -533,9 +564,12 @@ void Game::renderSettings() {
     applyStyle(mMediumBox, mMediumText, mDifficulty == Difficulty::Medium);
     applyStyle(mHardBox, mHardText, mDifficulty == Difficulty::Hard);
 
-    mWindow.draw(mEasyBox); mWindow.draw(mEasyText);
-    mWindow.draw(mMediumBox); mWindow.draw(mMediumText);
-    mWindow.draw(mHardBox); mWindow.draw(mHardText);
+    mWindow.draw(mEasyBox); 
+    mWindow.draw(mEasyText);
+    mWindow.draw(mMediumBox); 
+    mWindow.draw(mMediumText);
+    mWindow.draw(mHardBox); 
+    mWindow.draw(mHardText);
     
     mWindow.draw(*mBackButton);
 }
@@ -694,6 +728,26 @@ void Game::processSettingsEvents(sf::Vector2f mousePos) {
     else if (mSliderTrack.getGlobalBounds().contains(mousePos) || mSliderHandle.getGlobalBounds().contains(mousePos)) {
         float newVolume = (mousePos.x - mSliderTrack.getPosition().x) / mSliderTrack.getSize().x * 100.f;
         mVolume = std::clamp(newVolume, 0.f, 100.f);
+        applyVolume();
+    }
+}
+
+void Game::processSettingsEvents(sf::Vector2f mousePos) {
+    if (mEasyBox.getGlobalBounds().contains(mousePos)) {
+        mDifficulty = Difficulty::Easy;
+    } else if (mMediumBox.getGlobalBounds().contains(mousePos)) {
+        mDifficulty = Difficulty::Medium;
+    } else if (mHardBox.getGlobalBounds().contains(mousePos)) {
+        mDifficulty = Difficulty::Hard;
+    } else if (mBackButton->getGlobalBounds().contains(mousePos)) {
+        mState = GameState::Menu;
+    }
+
+    sf::FloatRect sliderArea(100.f, 210.f, 300.f, 40.f);
+    if (sliderArea.contains(mousePos)) {
+        mVolume = ((mousePos.x - 125.f) / 250.f) * 100.f;
+        if (mVolume < 0.f) mVolume = 0.f;
+        if (mVolume > 100.f) mVolume = 100.f;
         applyVolume();
     }
 }
