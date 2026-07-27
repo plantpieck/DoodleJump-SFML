@@ -2,10 +2,10 @@
 
 BlackHole::BlackHole(const sf::Texture& texture, sf::Vector2f position) : mSprite(texture) {
     mSprite.setPosition(position);
+    mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
 }
 
 void BlackHole::update(float dt) {
-    mSprite.rotate(sf::degrees(50.f * dt));
 }
 
 void BlackHole::render(sf::RenderWindow& window) {

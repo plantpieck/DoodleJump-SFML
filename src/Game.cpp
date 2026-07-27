@@ -432,6 +432,26 @@ void Game::update(float dt) {
             }
         }
 
+        for (auto bIt = mBullets.begin(); bIt != mBullets.end(); ) {
+            bool bulletHit = false;
+            sf::FloatRect bulletBounds = (*bIt)->getBounds();
+            
+            for (auto mIt = mMonsters.begin(); mIt != mMonsters.end(); ++mIt) {
+                if (bulletBounds.findIntersection((*mIt)->getBounds()).has_value()) {
+                    (*mIt)->takeDamage(); 
+                    bulletHit = true;
+                    break; 
+                }
+            }
+
+            if (bulletHit) {
+                delete *bIt;
+                bIt = mBullets.erase(bIt);
+            } else {
+                ++bIt;
+            }
+        }
+
         for (auto it = mMonsters.begin(); it != mMonsters.end(); ) {
             (*it)->update(dt);
             
@@ -462,8 +482,30 @@ void Game::update(float dt) {
             mState = GameState::GameOver;
             mLoseSound.play(); 
         }
+    } else if (mState == GameState::Dying) {
+        mDeathTimer -= dt;
+        
+        sf::Vector2f pos = mPlayer->getPosition();
+        pos.x += (mDeathTarget.x - pos.x) * dt * 5.0f;
+        pos.y += (mDeathTarget.y - pos.y) * dt * 5.0f;
+        mPlayer->setPosition(pos);
+        
+        mPlayer->rotate(dt * 1500.f); 
+        
+        float currentScale = mDeathTimer;
+        if (currentScale < 0.f) currentScale = 0.f;
+        mPlayer->setScale(currentScale);
+
+        if (mDeathTimer <= 0.f) {
+            if (mScore > mHighScores[mDifficulty]) {
+                mHighScores[mDifficulty] = mScore;
+                saveHighScores();
+            }
+            mState = GameState::GameOver;
+        }
     }
 }
+
 void Game::handleCollisions() {
     sf::FloatRect playerBounds = mPlayer->getBounds();
     for (auto* bh : mBlackHoles) {
@@ -766,18 +808,19 @@ void Game::processSettingsEvents(sf::Vector2f mousePos) {
 }
 
 void Game::spawnBlackHole(float baseY) {
+    if (baseY > 0.f) return; 
+
     int chance = 0;
-    
     if (mDifficulty == Difficulty::Easy) {
-        chance = 5;
+        chance = 2;
     } else if (mDifficulty == Difficulty::Medium) {
-        chance = 15;
-    } else if (mDifficulty == Hard) { 
-        chance = 30;
+        chance = 5;
+    } else if (mDifficulty == Difficulty::Hard) {
+        chance = 10;
     }
 
     if (rand() % 100 < chance) { 
         float randomX = static_cast<float>(rand() % 400 + 50); 
-        mBlackHoles.push_back(new BlackHole(mTextures.get("black_hole"), sf::Vector2f(randomX, baseY - 100.f)));
+        mBlackHoles.push_back(new BlackHole(mTextures.get("black_hole"), sf::Vector2f(randomX, baseY - 150.f)));
     }
 }

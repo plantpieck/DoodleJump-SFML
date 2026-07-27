@@ -10,7 +10,7 @@
 #include <SFML/Audio.hpp>
 #include "BlackHole.hpp"
 
-enum class GameState { Menu, Playing, GameOver, Settings };
+enum class GameState { Menu, Playing, Dying, GameOver, Settings };
 enum class Difficulty { Easy, Medium, Hard };
 
 class Game {
@@ -91,6 +91,9 @@ private:
     sf::RectangleShape mEasyBox;
     sf::RectangleShape mMediumBox;
     sf::RectangleShape mHardBox;
+
+    sf::Vector2f mDeathTarget;
+    float mDeathTimer;
 
 public:
     Game();

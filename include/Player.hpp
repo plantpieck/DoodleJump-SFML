@@ -26,4 +26,7 @@ public:
     sf::Vector2f getPosition() const;
     void setPosition(sf::Vector2f pos);
     void setTexture(const sf::Texture& texture);
+    void setScale(float factor);
+    void setRotation(float angle);
+    void rotate(float angle);
 };

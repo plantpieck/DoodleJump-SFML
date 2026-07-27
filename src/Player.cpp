@@ -80,3 +80,18 @@ void Player::setTexture(const sf::Texture& texture) {
     mSprite.setTexture(texture, true);
     mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
 }
+
+void Player::setScale(float factor) {
+    mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
+    mSprite.setScale({factor, factor});
+}
+
+void Player::setRotation(float angle) {
+    mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
+    mSprite.setRotation(angle);
+}
+
+void Player::rotate(float angle) {
+    mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
+    mSprite.rotate(angle);
+}
