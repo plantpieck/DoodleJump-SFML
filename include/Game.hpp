@@ -8,6 +8,7 @@
 #include "Monster.hpp"
 #include "Bullet.hpp"
 #include <SFML/Audio.hpp>
+#include "BlackHole.hpp"
 
 enum class GameState { Menu, Playing, GameOver, Settings };
 enum class Difficulty { Easy, Medium, Hard };
@@ -26,6 +27,7 @@ private:
     std::vector<Platform*> mPlatforms;
 
     std::vector<Monster*> mMonsters;
+    std::vector<BlackHole*> mBlackHoles;
     std::vector<Bullet*> mBullets;
     float mFireTimer;
     
@@ -60,7 +62,6 @@ private:
     sf::RectangleShape mSliderTrack;
     sf::RectangleShape mSliderHandle;
     
-    // متون جدید با مقداردهی اولیه فونت برای رفع ارور کامپایلر
     sf::Text mTitleText{mFont}; 
     sf::Text mSettingsTitleText{mFont};
     sf::Text mVolumeText{mFont};
