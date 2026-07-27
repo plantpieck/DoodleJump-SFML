@@ -275,18 +275,12 @@ void Game::resetGame() {
     mMonsters.clear();
     spawnMonster(200.f);
 
-    for (auto bullet : mBullets) {
-        delete bullet;
-    }
-    mBullets.clear();
-    mFireTimer = 0.f;
-
     for (auto* bh : mBlackHoles) {
         delete bh;
     }
     mBlackHoles.clear();
 
-    for (auto* bullet : mBullets) {
+    for (auto bullet : mBullets) {
         delete bullet;
     }
     mBullets.clear();
@@ -327,6 +321,8 @@ void Game::generatePlatforms(float startY) {
                 lastWasBreakable = true;
             }
         }
+
+        spawnBlackHole(currentY);
     }
 }
 
@@ -621,6 +617,10 @@ void Game::render() {
             monster->render(mWindow);
         }
 
+        for (auto* bh : mBlackHoles) {
+            bh->render(mWindow);
+        }
+
         for (auto bullet : mBullets) {
             bullet->render(mWindow);
         }
@@ -634,13 +634,6 @@ void Game::render() {
         scoreText.setStyle(sf::Text::Bold);
         scoreText.setPosition({15.f, 15.f});
         mWindow.draw(scoreText);
-
-        for (auto* bh : mBlackHoles) {
-        bh->render(mWindow);
-    }
-    for (auto* bullet : mBullets) {
-        bullet->render(mWindow);
-    }
         
     } else if (mState == GameState::Menu) {
         mWindow.setView(mWindow.getDefaultView());
@@ -769,5 +762,22 @@ void Game::processSettingsEvents(sf::Vector2f mousePos) {
         if (mVolume < 0.f) mVolume = 0.f;
         if (mVolume > 100.f) mVolume = 100.f;
         applyVolume();
+    }
+}
+
+void Game::spawnBlackHole(float baseY) {
+    int chance = 0;
+    
+    if (mDifficulty == Difficulty::Easy) {
+        chance = 5;
+    } else if (mDifficulty == Difficulty::Medium) {
+        chance = 15;
+    } else if (mDifficulty == Hard) { 
+        chance = 30;
+    }
+
+    if (rand() % 100 < chance) { 
+        float randomX = static_cast<float>(rand() % 400 + 50); 
+        mBlackHoles.push_back(new BlackHole(mTextures.get("black_hole"), sf::Vector2f(randomX, baseY - 100.f)));
     }
 }

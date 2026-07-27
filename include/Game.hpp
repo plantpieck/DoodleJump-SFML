@@ -33,6 +33,7 @@ private:
     
     bool isPositionValid(sf::FloatRect bounds);
     void spawnMonster(float baseY);
+    void spawnBlackHole(float baseY);
     
     sf::Sprite* mBackground;
     sf::Sprite* mStartButton;
