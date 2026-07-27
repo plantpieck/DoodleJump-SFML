@@ -1,23 +1,24 @@
-#include "../include/Bullet.hpp"
+#include "Bullet.hpp"
 
-Bullet::Bullet(sf::Texture& texture, sf::Vector2f startPosition) 
-    : mSprite(texture), mSpeed(500.f) {
-    mSprite.setPosition(startPosition);
-    mSprite.setOrigin({texture.getSize().x / 2.f, texture.getSize().y / 2.f});
+Bullet::Bullet(sf::Vector2f position) {
+    mShape.setRadius(6.f);
+    mShape.setFillColor(sf::Color({255, 215, 0}));
+    mShape.setOrigin({6.f, 6.f});
+    mShape.setPosition(position);
 }
 
 void Bullet::update(float dt) {
-    mSprite.move({0.f, -mSpeed * dt});
+    mShape.move({0.f, -800.f * dt});
 }
 
 void Bullet::render(sf::RenderWindow& window) {
-    window.draw(mSprite);
+    window.draw(mShape);
 }
 
 sf::FloatRect Bullet::getBounds() const {
-    return mSprite.getGlobalBounds();
+    return mShape.getGlobalBounds();
 }
 
 sf::Vector2f Bullet::getPosition() const {
-    return mSprite.getPosition();
+    return mShape.getPosition();
 }

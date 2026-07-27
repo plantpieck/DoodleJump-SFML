@@ -43,22 +43,29 @@ Game::~Game() {
     }
     mMonsters.clear();
 
+    for (auto* bh : mBlackHoles) {
+        delete bh;
+    }
+    mBlackHoles.clear();
+
     for (auto bullet : mBullets) {
         delete bullet;
     }
     mBullets.clear();
+    
     mFireTimer = 0.f;
 }
 
 void Game::loadSettings() {
-    std::ifstream file("settings.txt");
     mVolume = 50.f;
     mDifficulty = Difficulty::Medium;
 
+    std::ifstream file("settings.txt");
     if (file.is_open()) {
-        file >> mVolume;
+        float v;
         int diff;
-        if (file >> diff) {
+        if (file >> v >> diff) {
+            mVolume = v;
             mDifficulty = static_cast<Difficulty>(diff);
         }
         file.close();
@@ -75,19 +82,21 @@ void Game::saveSettings() {
 }
 
 void Game::loadHighScores() {
-    std::ifstream file("highscore.txt");
     mHighScores[Difficulty::Easy] = 0;
     mHighScores[Difficulty::Medium] = 0;
     mHighScores[Difficulty::Hard] = 0;
 
+    std::ifstream file("highscore.txt");
     if (file.is_open()) {
-        file >> mHighScores[Difficulty::Easy];
-        file >> mHighScores[Difficulty::Medium];
-        file >> mHighScores[Difficulty::Hard];
+        int e, m, h;
+        if (file >> e >> m >> h) {
+            mHighScores[Difficulty::Easy] = e;
+            mHighScores[Difficulty::Medium] = m;
+            mHighScores[Difficulty::Hard] = h;
+        }
         file.close();
     }
 }
-
 void Game::saveHighScores() {
     std::ofstream file("highscore.txt");
     if (file.is_open()) {
@@ -406,6 +415,9 @@ void Game::update(float dt) {
 
         if (mFireTimer > 0.f) {
             mFireTimer -= dt;
+            if (mFireTimer <= 0.f) {
+                mPlayer->setTexture(mTextures.get("doodle")); 
+            }
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) && mFireTimer <= 0.f) {
@@ -414,7 +426,9 @@ void Game::update(float dt) {
 
             sf::FloatRect playerBounds = mPlayer->getBounds();
             sf::Vector2f spawnPos(playerBounds.position.x + playerBounds.size.x / 2.f, playerBounds.position.y);
-            mBullets.push_back(new Bullet(mTextures.get("bullet"), spawnPos));
+            
+            mBullets.push_back(new Bullet(spawnPos));
+            
             mShootSound.play();
             mPlayer->setTexture(mTextures.get("doodle_shoot"));
         }
@@ -775,7 +789,7 @@ void Game::spawnMonster(float baseY) {
 
     sf::Vector2f pos(safeX, baseY - 80.f);
     
-    Monster* newMonster = new Monster(mTextures.get("monster"), pos);
+    Monster* newMonster = new Monster(mTextures.get("monster"), pos, 1);
 
     if (isPositionValid(newMonster->getBounds())) {
         mMonsters.push_back(newMonster);
