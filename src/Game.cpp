@@ -756,27 +756,33 @@ bool Game::isPositionValid(sf::FloatRect bounds) {
 }
 
 void Game::spawnMonster(float baseY) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> xDist(0.f, 400.f);
-    std::uniform_real_distribution<float> yDist(baseY - 300.f, baseY - 50.f);
-    std::uniform_int_distribution<int> texDist(1, 2);
+    if (baseY > 0.f) return;
 
-    int health = (mDifficulty == Difficulty::Easy) ? 3 : 5;
+    float randomX = static_cast<float>(rand() % 350 + 25);
+    sf::Vector2f pos(randomX, baseY - 100.f);
     
-    std::string texName = (texDist(gen) == 1) ? "monster1" : "monster2";
-    
-    int frames = (texName == "monster1") ? 2 : 1; 
-    
-    for(int attempts = 0; attempts < 10; ++attempts) {
-        float x = xDist(gen);
-        float y = yDist(gen);
-        sf::FloatRect testBounds({x, y}, {60.f, 60.f}); 
-        
-        if (isPositionValid(testBounds)) {
-            mMonsters.push_back(new Monster(mTextures.get(texName), {x, y}, health, frames));
+    Monster* newMonster = new Monster(mTextures.get("monster"), pos);
+    sf::FloatRect monsterBounds = newMonster->getBounds();
+    bool overlap = false;
+
+    for (auto platform : mPlatforms) {
+        if (monsterBounds.findIntersection(platform->getBounds()).has_value()) {
+            overlap = true;
             break;
         }
+    }
+
+    for (auto bh : mBlackHoles) {
+        if (monsterBounds.findIntersection(bh->getBounds()).has_value()) {
+            overlap = true;
+            break;
+        }
+    }
+
+    if (!overlap) {
+        mMonsters.push_back(newMonster);
+    } else {
+        delete newMonster;
     }
 }
 
@@ -808,19 +814,34 @@ void Game::processSettingsEvents(sf::Vector2f mousePos) {
 }
 
 void Game::spawnBlackHole(float baseY) {
+    if (mDifficulty != Difficulty::Hard) return; 
     if (baseY > 0.f) return; 
 
-    int chance = 0;
-    if (mDifficulty == Difficulty::Easy) {
-        chance = 2;
-    } else if (mDifficulty == Difficulty::Medium) {
-        chance = 5;
-    } else if (mDifficulty == Difficulty::Hard) {
-        chance = 10;
-    }
+    if (rand() % 100 < 15) { 
+        float randomX = static_cast<float>(rand() % 350 + 25); 
+        sf::Vector2f pos(randomX, baseY - 120.f);
+        
+        BlackHole* newBH = new BlackHole(mTextures.get("black_hole"), pos);
+        
+        if (rand() % 2 == 0) {
+            newBH->setScale(0.6f); 
+        } else {
+            newBH->setScale(1.0f); 
+        }
 
-    if (rand() % 100 < chance) { 
-        float randomX = static_cast<float>(rand() % 400 + 50); 
-        mBlackHoles.push_back(new BlackHole(mTextures.get("black_hole"), sf::Vector2f(randomX, baseY - 150.f)));
+        bool overlap = false;
+        sf::FloatRect bhBounds = newBH->getBounds();
+        for (auto platform : mPlatforms) {
+            if (bhBounds.findIntersection(platform->getBounds()).has_value()) {
+                overlap = true;
+                break;
+            }
+        }
+
+        if (!overlap) {
+            mBlackHoles.push_back(newBH);
+        } else {
+            delete newBH; 
+        }
     }
 }

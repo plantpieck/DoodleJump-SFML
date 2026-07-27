@@ -11,4 +11,5 @@ public:
     void render(sf::RenderWindow& window);
     sf::FloatRect getBounds() const;
     sf::Vector2f getPosition() const;
+    void setScale(float factor);
 };

@@ -19,3 +19,7 @@ sf::FloatRect BlackHole::getBounds() const {
 sf::Vector2f BlackHole::getPosition() const {
     return mSprite.getPosition();
 }
+
+void BlackHole::setScale(float factor) {
+    mSprite.setScale({factor, factor});
+}

@@ -88,10 +88,10 @@ void Player::setScale(float factor) {
 
 void Player::setRotation(float angle) {
     mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
-    mSprite.setRotation(angle);
+    mSprite.setRotation(sf::degrees(angle));
 }
 
 void Player::rotate(float angle) {
     mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
-    mSprite.rotate(angle);
+    mSprite.rotate(sf::degrees(angle));
 }
