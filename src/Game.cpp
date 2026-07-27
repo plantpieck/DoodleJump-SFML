@@ -111,7 +111,7 @@ void Game::loadResources() {
     mTextures.load("spring", "assets/spring_sprite.png");
     mTextures.load("monster1", "assets/BlueMonster.png");
     mTextures.load("monster2", "assets/green_monster.png");
-    mTextures.load("doodle_shoot", "assets/Shooting@Pose.png");
+    mTextures.load("doodle_shoot", "assets/hahahaha.png");
     mTextures.load("bullet", "assets/Nose.png");
     mTextures.load("button_settings", "assets/Settings_button.png");
     mTextures.load("button_back", "assets/back_button.png");
