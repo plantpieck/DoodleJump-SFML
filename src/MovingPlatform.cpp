@@ -10,7 +10,7 @@ void MovingPlatform::update(float dt) {
     sf::Vector2f pos = getPosition();
     if (pos.x < 0.f) {
         mDirection = 1;
-    } else if (pos.x + getBounds().size.x > 800.f) {
+    } else if (pos.x + getBounds().size.x > 500.f) {
         mDirection = -1;
     }
 }

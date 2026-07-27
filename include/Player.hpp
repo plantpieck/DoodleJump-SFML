@@ -29,4 +29,5 @@ public:
     void setScale(float factor);
     void setRotation(float angle);
     void rotate(float angle);
+    void reset();
 };

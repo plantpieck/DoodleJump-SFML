@@ -273,6 +273,7 @@ void Game::resetGame() {
     }
     mPlatforms.clear();
     
+    mPlayer->reset();
     mPlayer->setPosition({250.f, 600.f});
     
     mPlatforms.push_back(new NormalPlatform(mTextures.get("platform_normal"), sf::Vector2f({250.f, 750.f})));
@@ -308,27 +309,46 @@ void Game::generatePlatforms(float startY) {
     bool lastWasBreakable = false;
 
     for (int i = 0; i < 15; ++i) {
-        float newX = xDist(gen);
         currentY -= yDist(gen);
         
-        int r = typeDist(gen);
-        if (r <= 65) {
-            mPlatforms.push_back(new NormalPlatform(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY})));
-            lastWasBreakable = false;
-        } else if (r <= 80) {
-            mPlatforms.push_back(new MovingPlatform(mTextures.get("platform_moving"), sf::Vector2f({newX, currentY})));
-            lastWasBreakable = false;
-        } else if (r <= 85) {
-            mPlatforms.push_back(new SpringPlatform(mTextures.get("platform_normal"), mTextures.get("spring"), sf::Vector2f({newX, currentY})));
-            lastWasBreakable = false;
-        } else {
-            if (lastWasBreakable) {
-                mPlatforms.push_back(new NormalPlatform(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY})));
+        bool placed = false;
+        int attempts = 0;
+        Platform* newPlat = nullptr;
+        
+        while (!placed && attempts < 10) {
+            float newX = xDist(gen);
+            int r = typeDist(gen);
+            
+            if (r <= 65) {
+                newPlat = new NormalPlatform(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY}));
+                lastWasBreakable = false;
+            } else if (r <= 80) {
+                newPlat = new MovingPlatform(mTextures.get("platform_moving"), sf::Vector2f({newX, currentY}));
+                lastWasBreakable = false;
+            } else if (r <= 85) {
+                newPlat = new SpringPlatform(mTextures.get("platform_normal"), mTextures.get("spring"), sf::Vector2f({newX, currentY}));
                 lastWasBreakable = false;
             } else {
-                mPlatforms.push_back(new BreakablePlatform(mTextures.get("platform_breakable"), sf::Vector2f({newX, currentY})));
-                lastWasBreakable = true;
+                if (lastWasBreakable) {
+                    newPlat = new NormalPlatform(mTextures.get("platform_normal"), sf::Vector2f({newX, currentY}));
+                    lastWasBreakable = false;
+                } else {
+                    newPlat = new BreakablePlatform(mTextures.get("platform_breakable"), sf::Vector2f({newX, currentY}));
+                    lastWasBreakable = true;
+                }
             }
+            
+            if (isPositionValid(newPlat->getBounds())) {
+                placed = true;
+            } else {
+                delete newPlat;
+                newPlat = nullptr;
+                attempts++;
+            }
+        }
+        
+        if (placed && newPlat != nullptr) {
+            mPlatforms.push_back(newPlat);
         }
 
         spawnBlackHole(currentY);
@@ -425,7 +445,7 @@ void Game::update(float dt) {
         if (mFireTimer > 0.f) {
             mFireTimer -= dt;
             if (mFireTimer <= 0.f) {
-                mPlayer->setTexture(mTextures.get("doodle")); 
+                mPlayer->setTexture(mTextures.get("doodle_right")); 
             }
         }
 
@@ -497,7 +517,7 @@ void Game::update(float dt) {
         
         mPlayer->rotate(dt * 1500.f); 
         
-        float currentScale = mDeathTimer;
+        float currentScale = (mDeathTimer / 1.0f) * 0.55f;
         if (currentScale < 0.f) currentScale = 0.f;
         mPlayer->setScale(currentScale);
 
@@ -559,7 +579,6 @@ void Game::handleCollisions() {
             if (mPlayer->getVelocityY() > 0.f && 
                 playerBounds.position.y + playerBounds.size.y < monsterBounds.position.y + monsterBounds.size.y * 0.5f) {
                 
-                monster->dieInstantly(); 
                 mJumpSound.play();
                 mPlayer->superJump(); 
             } else {
@@ -656,7 +675,7 @@ void Game::render() {
     mWindow.setView(mWindow.getDefaultView());
     mWindow.draw(*mBackground);
 
-    if (mState == GameState::Playing) {
+    if (mState == GameState::Playing || mState == GameState::Dying) {
         mWindow.setView(mWorldView);
         
         for (auto platform : mPlatforms) {
@@ -748,18 +767,24 @@ void Game::run() {
 }
 
 bool Game::isPositionValid(sf::FloatRect bounds) {
+    sf::FloatRect paddedBounds = bounds;
+    paddedBounds.position.x -= 15.f;
+    paddedBounds.position.y -= 15.f;
+    paddedBounds.size.x += 30.f;
+    paddedBounds.size.y += 30.f;
+
     for (auto platform : mPlatforms) {
-        if (bounds.findIntersection(platform->getBounds()).has_value()) {
+        if (paddedBounds.findIntersection(platform->getBounds()).has_value()) {
             return false;
         }
     }
     for (auto monster : mMonsters) {
-        if (bounds.findIntersection(monster->getBounds()).has_value()) {
+        if (paddedBounds.findIntersection(monster->getBounds()).has_value()) {
             return false;
         }
     }
     for (auto bh : mBlackHoles) {
-        if (bounds.findIntersection(bh->getBounds()).has_value()) {
+        if (paddedBounds.findIntersection(bh->getBounds()).has_value()) {
             return false;
         }
     }
@@ -768,6 +793,53 @@ bool Game::isPositionValid(sf::FloatRect bounds) {
 
 void Game::spawnMonster(float baseY) {
     if (baseY > -300.f) return;
+
+    float bestSafeY = baseY - 80.f;
+    bool foundSafeY = false;
+
+    // Search for a Y level that is completely clear of all platforms and black holes
+    for (float offsetY = 20.f; offsetY <= 200.f; offsetY += 5.f) {
+        float testY = baseY - offsetY;
+        bool isClear = true;
+        
+        // Must not share Y space with ANY platform (static or moving) to avoid sweeping intersections
+        for (auto plat : mPlatforms) {
+            // A distance of 30.f is enough to prevent vertical intersection 
+            // (monster height ~40, platform height ~15 -> 20 + 7.5 = 27.5)
+            if (std::abs(plat->getPosition().y - testY) < 30.f) {
+                isClear = false;
+                break;
+            }
+        }
+        
+        for (auto bh : mBlackHoles) {
+            if (std::abs(bh->getPosition().y - testY) < 90.f) {
+                isClear = false;
+                break;
+            }
+        }
+
+        if (isClear) {
+            bestSafeY = testY;
+            foundSafeY = true;
+            break;
+        }
+    }
+
+    if (!foundSafeY) return;
+
+    float safeY = bestSafeY;
+
+    int solidPlatformCount = 0;
+    const Platform* singlePlat = nullptr;
+    for (auto plat : mPlatforms) {
+        if (std::abs(plat->getPosition().y - baseY) < 120.f) {
+            if (!dynamic_cast<BreakablePlatform*>(plat) && !dynamic_cast<MovingPlatform*>(plat)) {
+                solidPlatformCount++;
+                singlePlat = plat;
+            }
+        }
+    }
 
     float platformX = mPlatforms.back()->getPosition().x;
     float safeX = 0.f;
@@ -781,9 +853,20 @@ void Game::spawnMonster(float baseY) {
     if (safeX < 20.f) safeX = 20.f;
     if (safeX > 380.f) safeX = 380.f;
 
-    sf::Vector2f pos(safeX, baseY - 80.f);
+    if (solidPlatformCount <= 1 && singlePlat != nullptr) {
+        float platX = singlePlat->getPosition().x;
+        if (std::abs(safeX - platX) < 120.f) {
+            return;
+        }
+    }
+
+    sf::Vector2f pos(safeX, safeY);
     
-    Monster* newMonster = new Monster(mTextures.get("monster"), pos, 1);
+    int initialHealth = (mDifficulty == Difficulty::Easy) ? 3 : 5;
+    std::string monsterTex = (rand() % 2 == 0) ? "monster1" : "monster2";
+    int frames = (monsterTex == "monster1") ? 2 : 1;
+    float scale = (monsterTex == "monster1") ? 0.8f : 1.0f;
+    Monster* newMonster = new Monster(mTextures.get(monsterTex), pos, initialHealth, frames, scale);
 
     if (isPositionValid(newMonster->getBounds())) {
         mMonsters.push_back(newMonster);
@@ -824,32 +907,74 @@ void Game::spawnBlackHole(float baseY) {
     if (baseY > -300.f) return; 
 
     if (rand() % 100 < 15) { 
-        float platformX = mPlatforms.back()->getPosition().x;
-        float safeX = 0.f;
-        
-        if (platformX < 200.f) {
-            safeX = platformX + 160.f + (rand() % 50);
-        } else {
-            safeX = platformX - 160.f - (rand() % 50);
+        float safeY = baseY - 80.f;
+
+        // Prevent spawning black hole on the same Y level as moving platforms or monsters
+        for (auto plat : mPlatforms) {
+            if (dynamic_cast<MovingPlatform*>(plat)) {
+                if (std::abs(plat->getPosition().y - safeY) < 70.f) return;
+            }
+        }
+        for (auto monster : mMonsters) {
+            if (std::abs(monster->getPosition().y - safeY) < 80.f) return;
         }
 
-        if (safeX < 20.f) safeX = 20.f;
-        if (safeX > 380.f) safeX = 380.f;
+        bool placed = false;
+        int attempts = 0;
+        BlackHole* newBH = nullptr;
 
-        sf::Vector2f pos(safeX, baseY - 80.f);
-        
-        BlackHole* newBH = new BlackHole(mTextures.get("black_hole"), pos);
-        
-        if (rand() % 2 == 0) {
-            newBH->setScale(0.6f);
-        } else {
-            newBH->setScale(1.0f);
+        while (!placed && attempts < 10) {
+            float safeX = (rand() % 360) + 20.f; // 20 to 380
+            sf::Vector2f pos(safeX, safeY);
+            
+            newBH = new BlackHole(mTextures.get("black_hole"), pos);
+            if (rand() % 2 == 0) {
+                newBH->setScale(0.6f);
+            } else {
+                newBH->setScale(1.0f);
+            }
+
+            bool tooClose = false;
+            int solidPlatformCount = 0;
+            const Platform* singlePlat = nullptr;
+
+            for (auto plat : mPlatforms) {
+                if (!dynamic_cast<MovingPlatform*>(plat)) {
+                    sf::Vector2f platPos = plat->getPosition();
+                    if (std::abs(platPos.y - baseY) < 120.f && !dynamic_cast<BreakablePlatform*>(plat)) {
+                        solidPlatformCount++;
+                        singlePlat = plat;
+                    }
+
+                    if (std::abs(platPos.y - safeY) < 100.f) {
+                        // Ensure it's horizontally far away to avoid intersection
+                        if (std::abs(platPos.x - safeX) < 110.f) { 
+                            tooClose = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Ensure path up is not blocked if only 1 solid platform
+            if (!tooClose && solidPlatformCount <= 1 && singlePlat != nullptr) {
+                float platX = singlePlat->getPosition().x;
+                if (std::abs(safeX - platX) < 110.f) {
+                    tooClose = true;
+                }
+            }
+
+            if (!tooClose && isPositionValid(newBH->getBounds())) {
+                placed = true;
+            } else {
+                delete newBH;
+                newBH = nullptr;
+                attempts++;
+            }
         }
 
-        if (isPositionValid(newBH->getBounds())) {
+        if (placed && newBH != nullptr) {
             mBlackHoles.push_back(newBH);
-        } else {
-            delete newBH;
         }
     }
 }

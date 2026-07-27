@@ -4,9 +4,8 @@ Player::Player(sf::Texture& leftTex, sf::Texture& rightTex, sf::Texture& shootTe
     : mSprite(rightTex), mLeftTexture(&leftTex), mRightTexture(&rightTex), 
       mSpeed(300.f), mGravity(800.f), mJumpVelocity(-600.f) {
     mShootTexture = &shootTex;
-    mIsShooting = false;
+    reset();
     mSprite.setPosition({250.f, 400.f});
-    mSprite.setScale({0.55f, 0.55f});
 }
 
 void Player::handleInput() {
@@ -94,4 +93,13 @@ void Player::setRotation(float angle) {
 void Player::rotate(float angle) {
     mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
     mSprite.rotate(sf::degrees(angle));
+}
+
+void Player::reset() {
+    mVelocity = {0.f, 0.f};
+    mIsShooting = false;
+    mSprite.setTexture(*mRightTexture, true);
+    mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
+    mSprite.setScale({0.55f, 0.55f});
+    mSprite.setRotation(sf::degrees(0.f));
 }

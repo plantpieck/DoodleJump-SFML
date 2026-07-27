@@ -1,16 +1,16 @@
 #include "../include/Monster.hpp"
 
-Monster::Monster(sf::Texture& texture, sf::Vector2f position, int initialHealth, int frames) 
-    : mSprite(texture), mSpeed(120.f), mDirection(1), mHealth(initialHealth), mIsDead(false) {
+Monster::Monster(sf::Texture& texture, sf::Vector2f position, int initialHealth, int frames, float scale) 
+    : mSprite(texture), mSpeed(120.f), mDirection(1), mHealth(initialHealth), mIsDead(false), mScaleFactor(scale), mFrames(frames) {
     
-    int texWidth = texture.getSize().x / frames;
-    int texHeight = texture.getSize().y;
+    mTexWidth = texture.getSize().x / mFrames;
+    mTexHeight = texture.getSize().y;
     
-    mSprite.setTextureRect(sf::IntRect({0, 0}, {texWidth, texHeight}));
-    mSprite.setOrigin({texWidth / 2.f, texHeight / 2.f});
+    mSprite.setTextureRect(sf::IntRect({0, 0}, {mTexWidth, mTexHeight}));
+    mSprite.setOrigin({mTexWidth / 2.f, mTexHeight / 2.f});
     
     mSprite.setPosition(position);
-    mSprite.setScale({1.f, 1.f});
+    mSprite.setScale({mScaleFactor, mScaleFactor});
 }
 
 void Monster::update(float dt) {
@@ -22,11 +22,19 @@ void Monster::update(float dt) {
 
     if (pos.x - halfWidth < 0.f) {
         mDirection = 1;
-        mSprite.setScale({1.f, 1.f}); 
+        if (mFrames > 1) {
+            mSprite.setTextureRect(sf::IntRect({0, 0}, {mTexWidth, mTexHeight}));
+        } else {
+            mSprite.setScale({mScaleFactor, mScaleFactor});
+        }
         mSprite.setPosition({halfWidth, pos.y}); 
     } else if (pos.x + halfWidth > 500.f) {
         mDirection = -1;
-        mSprite.setScale({-1.f, 1.f}); 
+        if (mFrames > 1) {
+            mSprite.setTextureRect(sf::IntRect({mTexWidth, 0}, {mTexWidth, mTexHeight}));
+        } else {
+            mSprite.setScale({-mScaleFactor, mScaleFactor});
+        }
         mSprite.setPosition({500.f - halfWidth, pos.y}); 
     }
 }
