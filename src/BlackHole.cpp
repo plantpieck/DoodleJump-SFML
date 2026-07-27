@@ -1,12 +1,11 @@
 #include "BlackHole.hpp"
 
-BlackHole::BlackHole(const sf::Texture& texture, sf::Vector2f position) {
-    mSprite.setTexture(texture);
+BlackHole::BlackHole(const sf::Texture& texture, sf::Vector2f position) : mSprite(texture) {
     mSprite.setPosition(position);
 }
 
 void BlackHole::update(float dt) {
-    mSprite.rotate(50.f * dt);
+    mSprite.rotate(sf::degrees(50.f * dt));
 }
 
 void BlackHole::render(sf::RenderWindow& window) {

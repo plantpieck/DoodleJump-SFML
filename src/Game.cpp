@@ -115,6 +115,7 @@ void Game::loadResources() {
     mTextures.load("bullet", "assets/Nose.png");
     mTextures.load("button_settings", "assets/Settings_button.png");
     mTextures.load("button_back", "assets/back_button.png");
+    mTextures.load("black_hole", "assets/hole.png");
     
     if (!mFont.openFromFile("fonts/ariblk.ttf")) {
         std::cerr << "Failed to load font!\n";
@@ -278,6 +279,18 @@ void Game::resetGame() {
         delete bullet;
     }
     mBullets.clear();
+    mFireTimer = 0.f;
+
+    for (auto* bh : mBlackHoles) {
+        delete bh;
+    }
+    mBlackHoles.clear();
+
+    for (auto* bullet : mBullets) {
+        delete bullet;
+    }
+    mBullets.clear();
+    
     mFireTimer = 0.f;
 }
 
@@ -469,11 +482,69 @@ void Game::update(float dt) {
             mState = GameState::GameOver;
             mLoseSound.play(); 
         }
+        if (mFireTimer > 0.f) {
+            mFireTimer -= dt;
+        }
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) && mFireTimer <= 0.f) {
+            mBullets.push_back(new Bullet(mTextures.get("bullet"), mPlayer->getPosition()));
+            mShootSound.play();
+            mFireTimer = 0.3f;
+        }
+
+        for (auto* bh : mBlackHoles) {
+            bh->update(dt);
+        }
+
+        for (auto it = mBullets.begin(); it != mBullets.end(); ) {
+            (*it)->update(dt);
+            if ((*it)->getPosition().y < mWorldView.getCenter().y - 400.f) {
+                delete *it;
+                it = mBullets.erase(it);
+            } else {
+                ++it;
+            }
+        }
     }
 }
 
 void Game::handleCollisions() {
     sf::FloatRect playerBounds = mPlayer->getBounds();
+    for (auto* bh : mBlackHoles) {
+        if (playerBounds.findIntersection(bh->getBounds())) {
+            mLoseSound.play();
+            mState = GameState::GameOver;
+            return;
+        }
+    }
+    
+    for (auto bulletIt = mBullets.begin(); bulletIt != mBullets.end(); ) {
+        bool bulletDestroyed = false;
+        for (auto monsterIt = mMonsters.begin(); monsterIt != mMonsters.end(); ) {
+            if ((*bulletIt)->getBounds().findIntersection((*monsterIt)->getBounds())) {
+                (*monsterIt)->takeDamage();
+                bulletDestroyed = true;
+                
+                if ((*monsterIt)->isDead()) {
+                    delete *monsterIt;
+                    monsterIt = mMonsters.erase(monsterIt);
+                    mScore += 100;
+                } else {
+                    ++monsterIt;
+                }
+                break;
+            } else {
+                ++monsterIt;
+            }
+        }
+        
+        if (bulletDestroyed) {
+            delete *bulletIt;
+            bulletIt = mBullets.erase(bulletIt);
+        } else {
+            ++bulletIt;
+        }
+    }
 
     for (auto monster : mMonsters) {
         sf::FloatRect monsterBounds = monster->getBounds();
@@ -603,6 +674,13 @@ void Game::render() {
         scoreText.setStyle(sf::Text::Bold);
         scoreText.setPosition({15.f, 15.f});
         mWindow.draw(scoreText);
+
+        for (auto* bh : mBlackHoles) {
+        bh->render(mWindow);
+    }
+    for (auto* bullet : mBullets) {
+        bullet->render(mWindow);
+    }
         
     } else if (mState == GameState::Menu) {
         mWindow.setView(mWindow.getDefaultView());
