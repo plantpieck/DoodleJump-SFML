@@ -715,24 +715,6 @@ void Game::applyVolume() {
 }
 
 void Game::processSettingsEvents(sf::Vector2f mousePos) {
-    if (mEasyText.getGlobalBounds().contains(mousePos)) {
-        mDifficulty = Difficulty::Easy;
-    } else if (mMediumText.getGlobalBounds().contains(mousePos)) {
-        mDifficulty = Difficulty::Medium;
-    } else if (mHardText.getGlobalBounds().contains(mousePos)) {
-        mDifficulty = Difficulty::Hard;
-    } else if (mBackButton->getGlobalBounds().contains(mousePos)) {
-        saveSettings(); 
-        mState = GameState::Menu;
-    }
-    else if (mSliderTrack.getGlobalBounds().contains(mousePos) || mSliderHandle.getGlobalBounds().contains(mousePos)) {
-        float newVolume = (mousePos.x - mSliderTrack.getPosition().x) / mSliderTrack.getSize().x * 100.f;
-        mVolume = std::clamp(newVolume, 0.f, 100.f);
-        applyVolume();
-    }
-}
-
-void Game::processSettingsEvents(sf::Vector2f mousePos) {
     if (mEasyBox.getGlobalBounds().contains(mousePos)) {
         mDifficulty = Difficulty::Easy;
     } else if (mMediumBox.getGlobalBounds().contains(mousePos)) {
@@ -743,7 +725,7 @@ void Game::processSettingsEvents(sf::Vector2f mousePos) {
         mState = GameState::Menu;
     }
 
-    sf::FloatRect sliderArea(100.f, 210.f, 300.f, 40.f);
+    sf::FloatRect sliderArea({100.f, 210.f}, {300.f, 40.f});
     if (sliderArea.contains(mousePos)) {
         mVolume = ((mousePos.x - 125.f) / 250.f) * 100.f;
         if (mVolume < 0.f) mVolume = 0.f;
