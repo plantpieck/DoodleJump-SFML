@@ -397,8 +397,17 @@ void Game::update(float dt) {
             platform->update(dt);
         }
 
-        for (auto* bh : mBlackHoles) {
-            bh->update(dt);
+        float topEdge = mWorldView.getCenter().y - 400.f;
+        float bottomEdge = mWorldView.getCenter().y + 400.f;
+
+        for (auto it = mBlackHoles.begin(); it != mBlackHoles.end(); ) {
+            (*it)->update(dt);
+            if ((*it)->getPosition().y > bottomEdge) {
+                delete *it;
+                it = mBlackHoles.erase(it);
+            } else {
+                ++it;
+            }
         }
 
         handleCollisions();
@@ -433,9 +442,6 @@ void Game::update(float dt) {
             mPlayer->setTexture(mTextures.get("doodle_shoot"));
         }
 
-        float topEdge = mWorldView.getCenter().y - 400.f;
-        float bottomEdge = mWorldView.getCenter().y + 400.f;
-
         for (auto it = mBullets.begin(); it != mBullets.end(); ) {
             (*it)->update(dt);
             if ((*it)->getPosition().y < topEdge) {
@@ -446,33 +452,12 @@ void Game::update(float dt) {
             }
         }
 
-        for (auto bIt = mBullets.begin(); bIt != mBullets.end(); ) {
-            bool bulletHit = false;
-            sf::FloatRect bulletBounds = (*bIt)->getBounds();
-            
-            for (auto mIt = mMonsters.begin(); mIt != mMonsters.end(); ++mIt) {
-                if (bulletBounds.findIntersection((*mIt)->getBounds()).has_value()) {
-                    (*mIt)->takeDamage(); 
-                    bulletHit = true;
-                    break; 
-                }
-            }
-
-            if (bulletHit) {
-                delete *bIt;
-                bIt = mBullets.erase(bIt);
-            } else {
-                ++bIt;
-            }
-        }
-
         for (auto it = mMonsters.begin(); it != mMonsters.end(); ) {
             (*it)->update(dt);
             
             if ((*it)->isDead() || (*it)->getPosition().y > bottomEdge) {
                 delete *it;
                 it = mMonsters.erase(it);
-                spawnMonster(mWorldView.getCenter().y - 400.f); 
             } else {
                 ++it;
             }
@@ -485,7 +470,12 @@ void Game::update(float dt) {
         while (!mPlatforms.empty() && mPlatforms.front()->getPosition().y > bottomEdge) {
             delete mPlatforms.front();
             mPlatforms.erase(mPlatforms.begin());
-            generatePlatforms(mPlatforms.back()->getPosition().y);
+            
+            if (!mPlatforms.empty()) {
+                generatePlatforms(mPlatforms.back()->getPosition().y);
+            } else {
+                generatePlatforms(bottomEdge - 200.f);
+            }
         }
 
         if (playerY > bottomEdge) {
@@ -496,6 +486,7 @@ void Game::update(float dt) {
             mState = GameState::GameOver;
             mLoseSound.play(); 
         }
+        
     } else if (mState == GameState::Dying) {
         mDeathTimer -= dt;
         
@@ -522,10 +513,13 @@ void Game::update(float dt) {
 
 void Game::handleCollisions() {
     sf::FloatRect playerBounds = mPlayer->getBounds();
+    
     for (auto* bh : mBlackHoles) {
-        if (playerBounds.findIntersection(bh->getBounds())) {
+        if (playerBounds.findIntersection(bh->getBounds()).has_value()) {
             mLoseSound.play();
-            mState = GameState::GameOver;
+            mState = GameState::Dying; 
+            mDeathTarget = bh->getPosition();
+            mDeathTimer = 1.0f;
             return;
         }
     }
@@ -533,7 +527,7 @@ void Game::handleCollisions() {
     for (auto bulletIt = mBullets.begin(); bulletIt != mBullets.end(); ) {
         bool bulletDestroyed = false;
         for (auto monsterIt = mMonsters.begin(); monsterIt != mMonsters.end(); ) {
-            if ((*bulletIt)->getBounds().findIntersection((*monsterIt)->getBounds())) {
+            if ((*bulletIt)->getBounds().findIntersection((*monsterIt)->getBounds()).has_value()) {
                 (*monsterIt)->takeDamage();
                 bulletDestroyed = true;
                 

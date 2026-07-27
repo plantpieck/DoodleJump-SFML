@@ -1,25 +1,24 @@
-#include "BlackHole.hpp"
+#include "Bullet.hpp"
 
-BlackHole::BlackHole(const sf::Texture& texture, sf::Vector2f position) : mSprite(texture) {
-    mSprite.setPosition(position);
-    mSprite.setOrigin({mSprite.getLocalBounds().size.x / 2.f, mSprite.getLocalBounds().size.y / 2.f});
+Bullet::Bullet(sf::Vector2f position) {
+    mShape.setRadius(6.f);
+    mShape.setFillColor(sf::Color(255, 215, 0));
+    mShape.setOrigin({6.f, 6.f});
+    mShape.setPosition(position);
 }
 
-void BlackHole::update(float dt) {
+void Bullet::update(float dt) {
+    mShape.move({0.f, -800.f * dt});
 }
 
-void BlackHole::render(sf::RenderWindow& window) {
-    window.draw(mSprite);
+void Bullet::render(sf::RenderWindow& window) {
+    window.draw(mShape);
 }
 
-sf::FloatRect BlackHole::getBounds() const {
-    return mSprite.getGlobalBounds();
+sf::FloatRect Bullet::getBounds() const {
+    return mShape.getGlobalBounds();
 }
 
-sf::Vector2f BlackHole::getPosition() const {
-    return mSprite.getPosition();
-}
-
-void BlackHole::setScale(float factor) {
-    mSprite.setScale({factor, factor});
+sf::Vector2f Bullet::getPosition() const {
+    return mShape.getPosition();
 }
