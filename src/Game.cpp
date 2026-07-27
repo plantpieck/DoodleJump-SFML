@@ -132,9 +132,13 @@ void Game::loadResources() {
     mTitleText.setPosition({250.f - mTitleText.getGlobalBounds().size.x / 2.f, 100.f});
 
     mStartButton = new sf::Sprite(mTextures.get("button_start"));
+    float scaleStart = 200.f / static_cast<float>(mTextures.get("button_start").getSize().x);
+    mStartButton->setScale({scaleStart, scaleStart});
     mStartButton->setPosition({250.f - mStartButton->getGlobalBounds().size.x / 2.f, 250.f});
 
     mSettingsButton = new sf::Sprite(mTextures.get("button_settings"));
+    float scaleSettings = 200.f / static_cast<float>(mTextures.get("button_settings").getSize().x);
+    mSettingsButton->setScale({scaleSettings, scaleSettings});
     mSettingsButton->setPosition({250.f - mSettingsButton->getGlobalBounds().size.x / 2.f, 330.f});
 
     mModeText.setFont(mFont);
@@ -157,12 +161,18 @@ void Game::loadResources() {
     mInstructionText2.setPosition({250.f - mInstructionText2.getGlobalBounds().size.x / 2.f, 480.f});
 
     mRestartButton = new sf::Sprite(mTextures.get("button_restart"));
+    float scaleRestart = 200.f / static_cast<float>(mTextures.get("button_restart").getSize().x);
+    mRestartButton->setScale({scaleRestart, scaleRestart});
     mRestartButton->setPosition({250.f - mRestartButton->getGlobalBounds().size.x / 2.f, 420.f});
 
     mMenuButton = new sf::Sprite(mTextures.get("button_menu"));
-    mMenuButton->setPosition({250.f - mMenuButton->getGlobalBounds().size.x / 2.f, 520.f});
+    float scaleMenu = 200.f / static_cast<float>(mTextures.get("button_menu").getSize().x);
+    mMenuButton->setScale({scaleMenu, scaleMenu});
+    mMenuButton->setPosition({250.f - mMenuButton->getGlobalBounds().size.x / 2.f, 500.f});
 
     mBackButton = new sf::Sprite(mTextures.get("button_back"));
+    float scaleBack = 200.f / static_cast<float>(mTextures.get("button_back").getSize().x);
+    mBackButton->setScale({scaleBack, scaleBack});
     mBackButton->setPosition({250.f - mBackButton->getGlobalBounds().size.x / 2.f, 650.f});
 
     mSettingsTitleText.setString("SETTINGS");
